@@ -1,4 +1,4 @@
-import type { Alarm, AlarmRule, Device, DeviceRegistration, Farm, Pond, Stats } from '@/types/api'
+import type { Alarm, AlarmRule, Device, DeviceRegistration, Farm, Pond, Product, ProductModel, Stats, ModelField } from '@/types/api'
 
 let farms: Farm[] = [
   { id: 1, ownerId: 1, name: '东港示范养殖场', location: '广东 · 湛江' },
@@ -30,6 +30,8 @@ let alarms: Alarm[] = [
   { id: 10, deviceNo: 'dev-b14d2a90', pondId: 2, metric: 'ph', currentValue: 8.62, threshold: 8.5, level: 'warning', message: 'pH 高于阈值', confirmedAt: null, createdAt: new Date(Date.now() - 34 * 60_000).toISOString() },
   { id: 9, deviceNo: 'dev-a01c9f3e', pondId: 1, metric: 'temperature', currentValue: 31.2, threshold: 30, level: 'warning', message: '水温高于阈值', confirmedAt: new Date(Date.now() - 86 * 60_000).toISOString(), createdAt: new Date(Date.now() - 92 * 60_000).toISOString() },
 ]
+let products: Product[] = [{ id: 1, tenantId: 1, name: 'water-quality', builtin: true, currentVersion: 1 }]
+let productModels: ProductModel[] = [{ id: 1, productId: 1, version: 1, fields: [{ identifier: 'temperature', type: 'number', unit: '℃', min: 0, max: 50, readable: true, writable: false, nullable: true }], publishedAt: new Date().toISOString() }]
 
 const clone = <T>(value: T): T => structuredClone(value)
 const pause = () => new Promise<void>((resolve) => setTimeout(resolve, 160))
@@ -50,6 +52,12 @@ export async function demoPonds() { await pause(); return clone(ponds) }
 export async function demoDevices() { await pause(); return clone(devices) }
 export async function demoRules() { await pause(); return clone(rules) }
 export async function demoAlarms() { await pause(); return clone(alarms) }
+export async function demoProducts() { await pause(); return clone(products) }
+export async function demoProductModels(productId: number) { await pause(); return clone(productModels.filter((model) => model.productId === productId)) }
+export async function demoCreateProduct(name: string) { await pause(); const product: Product = { id: Math.max(0, ...products.map((item) => item.id)) + 1, tenantId: 1, name, builtin: false, currentVersion: null }; products = [...products, product]; return clone(product) }
+export async function demoCreateProductModel(productId: number, fields: ModelField[]) { await pause(); const version = Math.max(0, ...productModels.filter((model) => model.productId === productId).map((model) => model.version)) + 1; const plainFields = fields.map((field) => ({ ...field, enum: field.enum ? [...field.enum] : undefined })); const model: ProductModel = { id: Math.max(0, ...productModels.map((item) => item.id)) + 1, productId, version, fields: plainFields, publishedAt: null }; productModels = [...productModels, model]; return clone(model) }
+export async function demoPublishProductModel(productId: number, version: number) { await pause(); const publishedAt = new Date().toISOString(); productModels = productModels.map((model) => model.productId === productId && model.version === version ? { ...model, publishedAt } : model); products = products.map((product) => product.id === productId ? { ...product, currentVersion: version } : product); return clone(productModels.find((model) => model.productId === productId && model.version === version) as ProductModel) }
+export async function demoAssignDeviceProduct() { await pause() }
 
 export async function demoCreateFarm(payload: Pick<Farm, 'name' | 'location'>): Promise<Farm> {
   await pause()

@@ -1,7 +1,7 @@
 import { http } from './http'
 import { normalizeAlarm, normalizeDevice, normalizeFarm, normalizePond, normalizeRule, normalizeStats } from './adapters'
 import * as demo from './demo'
-import type { AlarmRule, Device, Farm, LoginResponse, Pond } from '@/types/api'
+import type { AlarmRule, Device, Farm, LoginResponse, Pond, Product, ProductModel, ModelField, Tenant, TenantMember } from '@/types/api'
 
 export const demoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 
@@ -81,4 +81,93 @@ export async function confirmAlarms(ids: number[]) {
 export async function changePassword(oldPassword: string, newPassword: string) {
   if (demoMode) return
   await http.post('/password', { old_password: oldPassword, new_password: newPassword })
+}
+
+export async function getTenants(): Promise<Tenant[]> {
+  if (demoMode) return [{ id: 1, name: '演示组织', active: true, permissionVersion: 0 }]
+  const { data } = await http.get('/tenants')
+  return data.map((item: Record<string, unknown>) => ({ id: Number(item.id), name: String(item.name), active: item.active !== false, permissionVersion: Number(item.permission_version ?? 0) }))
+}
+
+let demoTenantMembers: TenantMember[] = [
+  { tenantId: 1, userId: 1, name: '演示管理员', role: 'owner', active: true },
+  { tenantId: 1, userId: 2, name: '演示成员', role: 'member', active: true },
+]
+
+function readDemoTenantMembers(): TenantMember[] {
+  const saved = localStorage.getItem('iolink.demo.tenant-members')
+  if (!saved) return demoTenantMembers
+  try {
+    const parsed: unknown = JSON.parse(saved)
+    return Array.isArray(parsed) ? parsed as TenantMember[] : demoTenantMembers
+  } catch {
+    return demoTenantMembers
+  }
+}
+
+export async function getTenantMembers(tenantId: number): Promise<TenantMember[]> {
+  if (demoMode) return readDemoTenantMembers().filter((item) => item.tenantId === tenantId).map((item) => ({ ...item }))
+  const { data } = await http.get(`/tenants/${tenantId}/members`)
+  return data.map((item: Record<string, unknown>) => ({ tenantId: Number(item.tenant_id ?? tenantId), userId: Number(item.user_id), name: String(item.name), role: String(item.role), active: item.active !== false, expiresAt: typeof item.expires_at === 'string' ? item.expires_at : null }))
+}
+
+export async function updateTenantMember(tenantId: number, userId: number, role: string, active: boolean, expiresAt?: string) {
+  if (demoMode) {
+    if (role === 'support' && (!expiresAt || Number.isNaN(Date.parse(expiresAt)) || Date.parse(expiresAt) <= Date.now())) throw new Error('支持角色需要未来的到期时间')
+    demoTenantMembers = readDemoTenantMembers().map((item) => item.tenantId === tenantId && item.userId === userId ? { ...item, role, active, expiresAt: role === 'support' ? expiresAt : null } : item)
+    localStorage.setItem('iolink.demo.tenant-members', JSON.stringify(demoTenantMembers))
+    return
+  }
+  await http.put(`/tenants/${tenantId}/members/${userId}`, { role, active, expires_at: expiresAt || null })
+}
+
+export async function getProducts(): Promise<Product[]> {
+  if (demoMode) return demo.demoProducts()
+  const { data } = await http.get('/products')
+  return data.map((item: unknown) => {
+    const value = asRecord(item)
+    return { id: Number(value.id), tenantId: Number(value.tenant_id ?? value.tenantId), name: String(value.name), builtin: value.builtin === true, currentVersion: typeof value.current_version === 'number' ? value.current_version : null, createdAt: typeof value.created_at === 'string' ? value.created_at : undefined }
+  })
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('响应格式错误')
+  return value as Record<string, unknown>
+}
+
+function normalizeField(value: unknown): ModelField {
+  const field = asRecord(value)
+  const type = field.type
+  if (type !== 'number' && type !== 'integer' && type !== 'boolean' && type !== 'string') throw new Error('模型字段类型无效')
+  const values = field.enum_values ?? field.enum
+  return { identifier: String(field.identifier), type, unit: String(field.unit ?? ''), min: typeof (field.minimum ?? field.min) === 'number' ? Number(field.minimum ?? field.min) : null, max: typeof (field.maximum ?? field.max) === 'number' ? Number(field.maximum ?? field.max) : null, enum: Array.isArray(values) ? values.filter((item): item is string => typeof item === 'string') : undefined, readable: field.readable === true, writable: field.writable === true, nullable: field.nullable === true }
+}
+
+export async function getProductModels(productId: number): Promise<ProductModel[]> {
+  if (demoMode) return demo.demoProductModels(productId)
+  const { data } = await http.get(`/products/${productId}/models`)
+  return data.map((raw: unknown) => { const item = asRecord(raw); const fields = Array.isArray(item.fields) ? item.fields.map(normalizeField) : []; return { id: Number(item.id), productId: Number(item.product_id ?? item.productId), version: Number(item.version), fields, publishedAt: typeof item.published_at === 'string' ? item.published_at : null, createdAt: typeof item.created_at === 'string' ? item.created_at : undefined } })
+}
+
+export async function createProduct(name: string): Promise<Product> {
+  if (demoMode) return demo.demoCreateProduct(name)
+  const { data } = await http.post('/products', { name })
+  return { id: Number(data.id), tenantId: Number(data.tenant_id), name: String(data.name), createdAt: data.created_at }
+}
+
+export async function createProductModel(productId: number, fields: ModelField[]): Promise<ProductModel> {
+  if (demoMode) return demo.demoCreateProductModel(productId, fields)
+  const { data } = await http.post(`/products/${productId}/models`, { fields: fields.map((field) => ({ identifier: field.identifier, type: field.type, unit: field.unit, minimum: field.min ?? null, maximum: field.max ?? null, enum_values: field.enum?.length ? field.enum : null, readable: field.readable, writable: field.writable, nullable: field.nullable })) })
+  return { id: Number(data.id), productId: Number(data.product_id), version: Number(data.version), fields: data.fields ?? fields, publishedAt: data.published_at ?? null, createdAt: data.created_at }
+}
+
+export async function publishProductModel(productId: number, version: number): Promise<ProductModel> {
+  if (demoMode) return demo.demoPublishProductModel(productId, version)
+  const { data } = await http.post(`/products/${productId}/models/${version}/publish`)
+  return { id: Number(data.id), productId: Number(data.product_id), version: Number(data.version), fields: data.fields ?? [], publishedAt: data.published_at ?? null, createdAt: data.created_at }
+}
+
+export async function assignDeviceProduct(deviceNo: string, productId: number, modelVersion: number): Promise<void> {
+  if (demoMode) return demo.demoAssignDeviceProduct()
+  await http.put(`/devices/${encodeURIComponent(deviceNo)}/product`, { product_id: productId, model_version: modelVersion })
 }

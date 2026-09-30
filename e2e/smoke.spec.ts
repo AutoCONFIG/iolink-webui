@@ -9,7 +9,7 @@ test('管理员可从登录进入运营总览', async ({ page }) => {
   await expect(page.getByText('池塘状态墙')).toBeVisible()
   await expect(page.getByText('东港示范养殖场').first()).toBeVisible()
   await expect(page.locator('.el-loading-mask')).toHaveCount(0)
-  await page.screenshot({ path: '../iolink-admin-ui-preview.png', fullPage: true })
+  await page.screenshot({ path: '../.omo/evidence/todo7-dashboard.png', fullPage: true })
 })
 
 test('主导航可进入设备管理', async ({ page }) => {

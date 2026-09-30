@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 30_000,
   use: {
     baseURL: 'http://127.0.0.1:5173',
-    channel: 'msedge',
+    channel: 'chrome',
     viewport: { width: 1440, height: 960 },
   },
   webServer: {

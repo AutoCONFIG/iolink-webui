@@ -71,4 +71,9 @@ export interface Stats {
 }
 
 export interface LoginResponse { token: string; expiresIn: number }
+export interface Tenant { id: number; name: string; active: boolean; permissionVersion?: number }
+export interface TenantMember { tenantId: number; userId?: number; name: string; role: string; active?: boolean; expiresAt?: string | null }
 export interface DeviceRegistration extends Device { secret: string }
+export interface Product { id: number; tenantId: number; name: string; builtin?: boolean; currentVersion?: number | null; createdAt?: string }
+export interface ModelField { identifier: string; type: 'number' | 'integer' | 'boolean' | 'string'; unit: string; min?: number | null; max?: number | null; enum?: string[]; readable: boolean; writable: boolean; nullable: boolean }
+export interface ProductModel { id: number; productId: number; version: number; fields: ModelField[]; publishedAt?: string | null; createdAt?: string }

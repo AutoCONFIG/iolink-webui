@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "test": "vitest run",
+    "test": "vitest run tests",
     "coverage": "vitest run --coverage",
     "e2e": "playwright test",
     "typecheck": "vue-tsc -b"
