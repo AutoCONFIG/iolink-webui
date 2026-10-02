@@ -17,11 +17,19 @@ for (const timezoneId of ['Asia/Shanghai', 'UTC', 'America/New_York']) {
       await expect(member).toBeVisible()
       const expiry = member.locator('input').nth(1)
       await expect(expiry).toHaveValue('2099-10-02 13:00')
+      await expiry.click()
+      const picker = page.locator('.el-picker-panel').last()
+      await expect(picker).toBeVisible()
+      await picker.locator('.el-date-table td.available:not(.prev-month):not(.next-month)').filter({ hasText: /^3$/ }).click()
+      await picker.getByRole('button', { name: '确定' }).click()
+      await expect(expiry).toHaveValue('2099-10-03 13:00')
+      await member.getByRole('button', { name: '保存' }).click()
+      await expect(page.getByText('成员权限已更新')).toBeVisible()
       expect(await page.evaluate(() => JSON.parse(localStorage.getItem('iolink.demo.tenant-members') ?? 'null'))).toEqual([
-        { tenantId: 1, userId: 2, name: '时区测试成员', role: 'support', active: true, expiresAt: '2099-10-02T05:00:00Z' },
+        { tenantId: 1, userId: 2, name: '时区测试成员', role: 'support', active: true, expiresAt: '2099-10-03T05:00:00Z' },
       ])
       await page.reload()
-      await expect(page.getByRole('row', { name: /时区测试成员/ }).locator('input').nth(1)).toHaveValue('2099-10-02 13:00')
+      await expect(page.getByRole('row', { name: /时区测试成员/ }).locator('input').nth(1)).toHaveValue('2099-10-03 13:00')
     })
   })
 }
