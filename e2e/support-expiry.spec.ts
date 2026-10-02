@@ -5,9 +5,11 @@ for (const timezoneId of ['Asia/Shanghai', 'UTC', 'America/New_York']) {
     test.use({ timezoneId })
     test('上海时间显示、编辑、保存和重载保持同一瞬间', async ({ page }) => {
       await page.addInitScript(() => {
-        localStorage.setItem('iolink.demo.tenant-members', JSON.stringify([
-          { tenantId: 1, userId: 2, name: '时区测试成员', role: 'support', active: true, expiresAt: '2099-10-02T05:00:00Z' },
-        ]))
+        if (!localStorage.getItem('iolink.demo.tenant-members')) {
+          localStorage.setItem('iolink.demo.tenant-members', JSON.stringify([
+            { tenantId: 1, userId: 2, name: '时区测试成员', role: 'support', active: true, expiresAt: '2099-10-02T05:00:00Z' },
+          ]))
+        }
       })
       await page.goto('/login')
       await page.getByRole('button', { name: '进入控制台' }).click()
@@ -17,11 +19,8 @@ for (const timezoneId of ['Asia/Shanghai', 'UTC', 'America/New_York']) {
       await expect(member).toBeVisible()
       const expiry = member.locator('input').nth(1)
       await expect(expiry).toHaveValue('2099-10-02 13:00')
-      await expiry.click()
-      const picker = page.locator('.el-picker-panel').last()
-      await expect(picker).toBeVisible()
-      await picker.locator('.el-date-table td.available:not(.prev-month):not(.next-month)').filter({ hasText: /^3$/ }).click()
-      await picker.getByRole('button', { name: '确定' }).click()
+      await expiry.fill('2099-10-03 13:00')
+      await expiry.press('Enter')
       await expect(expiry).toHaveValue('2099-10-03 13:00')
       await member.getByRole('button', { name: '保存' }).click()
       await expect(page.getByText('成员权限已更新')).toBeVisible()
