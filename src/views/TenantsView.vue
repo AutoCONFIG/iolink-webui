@@ -6,7 +6,7 @@ import { formatSupportExpiry, parseSupportExpiry } from '@/domain/supportExpiry'
 import type { Tenant, TenantMember } from '@/types/api'
 
 const tenants = ref<Tenant[]>([])
-type MemberDraft = TenantMember & { expiresAtShanghai: string | null }
+type MemberDraft = TenantMember & { expiresAtShanghai: string | null; originalExpiresAtShanghai: string | null }
 const members = ref<MemberDraft[]>([])
 const selected = ref<Tenant | null>(null)
 const loading = ref(false)
@@ -20,7 +20,7 @@ async function loadMembers(tenant: Tenant) {
     for (const member of loaded) {
       const expiry = formatSupportExpiry(member.expiresAt)
       if (!expiry.ok) { ElMessage.error('成员到期时间格式错误，请刷新重试'); return }
-      drafts.push({ ...member, expiresAtShanghai: expiry.value ? expiry.value.slice(0, 16) : null })
+      drafts.push({ ...member, expiresAtShanghai: expiry.value, originalExpiresAtShanghai: expiry.value })
     }
     members.value = drafts
   } catch (error) { ElMessage.error(error instanceof Error ? error.message : '成员加载失败') }
@@ -35,11 +35,16 @@ async function saveMember(member: MemberDraft) {
   if (!selected.value || !member.name) return
   const id = Number(member.userId)
   if (!Number.isFinite(id)) { ElMessage.warning('当前成员缺少可编辑的用户编号'); return }
-  const expiryInput = member.expiresAtShanghai && member.expiresAtShanghai.length === 16 ? `${member.expiresAtShanghai}:00` : member.expiresAtShanghai
-  const expiry = parseSupportExpiry(expiryInput)
+  const expiry = parseSupportExpiry(member.expiresAtShanghai)
   if (!expiry.ok) { ElMessage.warning('请输入有效的上海时间，格式为 YYYY-MM-DD HH:mm:ss'); return }
+  const expiresAt = member.expiresAtShanghai === member.originalExpiresAtShanghai ? member.expiresAt : expiry.value
   saving.value = id
-  try { await updateTenantMember(selected.value.id, id, member.role, member.active !== false, expiry.value ?? undefined); ElMessage.success('成员权限已更新') }
+  try {
+    await updateTenantMember(selected.value.id, id, member.role, member.active !== false, expiresAt ?? undefined)
+    member.expiresAt = expiresAt
+    member.originalExpiresAtShanghai = member.expiresAtShanghai
+    ElMessage.success('成员权限已更新')
+  }
   catch (error) { ElMessage.error(error instanceof Error ? error.message : '成员更新失败') }
   finally { saving.value = null }
 }
@@ -58,7 +63,7 @@ onMounted(load)
       </div></section>
       <section class="surface"><div class="surface-head"><div><h3>{{ selected?.name ?? '选择组织' }}</h3><small>角色变更会使旧权限版本失效</small></div></div><div class="surface-body">
         <el-empty v-if="!selected" description="选择组织查看成员" />
-        <el-table v-else :data="members" stripe><el-table-column prop="name" label="成员" /><el-table-column label="角色" width="180"><template #default="scope"><el-select v-model="scope.row.role" size="small"><el-option v-for="role in ['owner','admin','member','viewer','support']" :key="role" :label="role" :value="role" /></el-select></template></el-table-column><el-table-column label="支持到期（上海时间）" width="210"><template #default="scope"><el-date-picker v-model="scope.row.expiresAtShanghai" type="datetime" value-format="YYYY-MM-DD HH:mm" :show-now="false" format="YYYY-MM-DD HH:mm" placeholder="支持角色必填" size="small" /></template></el-table-column><el-table-column label="状态" width="120"><template #default="scope"><el-switch v-model="scope.row.active" /></template></el-table-column><el-table-column label="操作" width="110"><template #default="scope"><el-button link type="primary" :loading="saving !== null" @click="saveMember(scope.row)">保存</el-button></template></el-table-column></el-table>
+        <el-table v-else :data="members" stripe><el-table-column prop="name" label="成员" /><el-table-column label="角色" width="180"><template #default="scope"><el-select v-model="scope.row.role" size="small"><el-option v-for="role in ['owner','admin','member','viewer','support']" :key="role" :label="role" :value="role" /></el-select></template></el-table-column><el-table-column label="支持到期（上海时间）" width="210"><template #default="scope"><el-date-picker v-model="scope.row.expiresAtShanghai" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" :show-now="false" format="YYYY-MM-DD HH:mm:ss" placeholder="支持角色必填" size="small" /></template></el-table-column><el-table-column label="状态" width="120"><template #default="scope"><el-switch v-model="scope.row.active" /></template></el-table-column><el-table-column label="操作" width="110"><template #default="scope"><el-button link type="primary" :loading="saving !== null" @click="saveMember(scope.row)">保存</el-button></template></el-table-column></el-table>
       </div></section>
     </div>
   </div>
