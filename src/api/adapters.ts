@@ -54,6 +54,7 @@ export function normalizeDevice(raw: Raw): Device {
     status: asString(pick(raw, 'status', 'Status'), 'offline') as Device['status'],
     lastSeenAt: asString(pick(raw, 'last_seen_at', 'LastSeenAt')) || null,
     createdAt: asString(pick(raw, 'created_at', 'CreatedAt')),
+    disabledAt: asString(pick(raw, 'disabled_at', 'DisabledAt')) || null,
   }
 }
 

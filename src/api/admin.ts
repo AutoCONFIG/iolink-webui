@@ -1,7 +1,7 @@
 import { http } from './http'
 import { normalizeAlarm, normalizeDevice, normalizeFarm, normalizePond, normalizeRule, normalizeStats } from './adapters'
 import * as demo from './demo'
-import type { AlarmRule, Device, Farm, LoginResponse, Pond, Product, ProductModel, ModelField, Tenant, TenantMember } from '@/types/api'
+import type { AlarmRule, Device, Farm, LicenseStatus, LoginResponse, Pond, Product, ProductModel, ModelField, Tenant, TenantMember } from '@/types/api'
 
 export const demoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 
@@ -41,10 +41,28 @@ export async function createPond(payload: Pick<Pond, 'farmId' | 'name' | 'areaMu
   return normalizePond(data)
 }
 
-export async function getDevices() {
+export async function getDevices(includeDisabled = false) {
   if (demoMode) return demo.demoDevices()
-  const { data } = await http.get('/devices')
+  const { data } = await http.get('/devices', { params: includeDisabled ? { include_disabled: true } : undefined })
   return data.map(normalizeDevice)
+}
+
+export async function restoreDevice(deviceNo: string) {
+  if (demoMode) return
+  await http.post(`/devices/${encodeURIComponent(deviceNo)}/restore`)
+}
+
+export async function getLicense(): Promise<LicenseStatus> {
+  if (demoMode) return { state: 'missing', deploymentId: 'demo', licenseId: null, keyId: null, issuedAt: null, notBefore: null, expiresAt: null, maxDevices: 0, usedDevices: 0, overage: 0, features: [], payloadSha256: null }
+  const { data } = await http.get('/license')
+  return { state: data.state, deploymentId: String(data.deployment_id), licenseId: data.license_id ?? null, keyId: data.key_id ?? null, issuedAt: data.issued_at ?? null, notBefore: data.not_before ?? null, expiresAt: data.expires_at ?? null, maxDevices: Number(data.max_devices), usedDevices: Number(data.used_devices), overage: Number(data.overage), features: Array.isArray(data.features) ? data.features.map(String) : [], payloadSha256: data.payload_sha256 ?? null }
+}
+
+export async function importLicense(file: File) {
+  if (demoMode) return
+  const envelope = JSON.parse(await file.text()) as { payload_b64?: string; signature_b64?: string }
+  if (typeof envelope.payload_b64 !== 'string' || typeof envelope.signature_b64 !== 'string') throw new Error('License 文件格式无效')
+  await http.post('/license', envelope)
 }
 
 export async function registerDevice(payload: Pick<Device, 'pondId' | 'model'>) {
