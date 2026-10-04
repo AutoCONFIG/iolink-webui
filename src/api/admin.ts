@@ -52,6 +52,11 @@ export async function restoreDevice(deviceNo: string) {
   await http.post(`/devices/${encodeURIComponent(deviceNo)}/restore`)
 }
 
+export async function deleteDevice(deviceNo: string) {
+  if (demoMode) return
+  await http.delete(`/devices/${encodeURIComponent(deviceNo)}`)
+}
+
 export async function getLicense(): Promise<LicenseStatus> {
   if (demoMode) return { state: 'missing', deploymentId: 'demo', licenseId: null, keyId: null, issuedAt: null, notBefore: null, expiresAt: null, maxDevices: 0, usedDevices: 0, overage: 0, features: [], payloadSha256: null }
   const { data } = await http.get('/license')
@@ -60,9 +65,8 @@ export async function getLicense(): Promise<LicenseStatus> {
 
 export async function importLicense(file: File) {
   if (demoMode) return
-  const envelope = JSON.parse(await file.text()) as { payload_b64?: string; signature_b64?: string }
-  if (typeof envelope.payload_b64 !== 'string' || typeof envelope.signature_b64 !== 'string') throw new Error('License 文件格式无效')
-  await http.post('/license', envelope)
+  const raw = await file.text()
+  await http.post('/license', raw, { headers: { 'Content-Type': 'application/json' } })
 }
 
 export async function registerDevice(payload: Pick<Device, 'pondId' | 'model'>) {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getDevices, getPonds, registerDevice, restoreDevice } from '@/api/admin'
+import { deleteDevice, getDevices, getPonds, registerDevice, restoreDevice } from '@/api/admin'
 import type { Device, DeviceRegistration, Pond } from '@/types/api'
 
 const loading = ref(true)
@@ -15,7 +15,7 @@ const secretDialog = ref(false)
 const registration = ref<DeviceRegistration | null>(null)
 const form = reactive({ pondId: 0, model: '' })
 const pondName = (id: number) => ponds.value.find((item) => item.id === id)?.name ?? `池塘 #${id}`
-const visibleDevices = computed(() => devices.value.filter((item) => (!status.value || item.status === status.value) && (!query.value || `${item.deviceNo}${item.model}${pondName(item.pondId)}`.toLowerCase().includes(query.value.toLowerCase()))))
+const visibleDevices = computed(() => devices.value.filter((item) => (!status.value || (status.value === 'disabled' ? Boolean(item.disabledAt) : item.status === status.value)) && (!query.value || `${item.deviceNo}${item.model}${pondName(item.pondId)}`.toLowerCase().includes(query.value.toLowerCase()))))
 
 async function load() {
   loading.value = true
@@ -34,6 +34,10 @@ async function saveDevice() {
 }
 async function copySecret() { if (registration.value?.secret) { await navigator.clipboard.writeText(registration.value.secret); ElMessage.success('Secret 已复制') } }
 async function restore(no: string) { try { await restoreDevice(no); ElMessage.success('设备已恢复'); await load() } catch (error) { ElMessage.error(error instanceof Error ? error.message : '恢复失败') } }
+async function disable(no: string) {
+  if (!window.confirm('停用后设备将断开接入并释放授权额度，确认继续吗？')) return
+  try { await deleteDevice(no); ElMessage.success('设备已停用'); await load() } catch (error) { ElMessage.error(error instanceof Error ? error.message : '停用失败') }
+}
 onMounted(load)
 </script>
 
@@ -41,8 +45,8 @@ onMounted(load)
   <div v-loading="loading" class="page-stack">
     <div class="page-intro"><div><h2>设备管理</h2><p>查看终端在线状态，并为新设备生成一次性接入凭据。</p></div><el-button type="primary" color="#0fae9b" @click="openRegister">注册设备</el-button></div>
     <section class="surface">
-      <div class="surface-head"><div class="toolbar"><el-input v-model="query" clearable placeholder="搜索设备、型号或池塘" style="width:260px" /><el-select v-model="status" clearable placeholder="全部状态" style="width:140px"><el-option label="在线" value="online" /><el-option label="离线" value="offline" /></el-select></div><span style="color:#7b909e;font-size:13px">{{ visibleDevices.length }} 台设备</span></div>
-      <div class="table-wrap"><el-table :data="visibleDevices" stripe><el-table-column prop="deviceNo" label="设备编号" min-width="170" /><el-table-column prop="model" label="型号" min-width="150" /><el-table-column label="所属池塘" min-width="150"><template #default="scope">{{ pondName(scope.row.pondId) }}</template></el-table-column><el-table-column label="状态" width="110"><template #default="scope"><el-tag :type="scope.row.disabledAt ? 'danger' : scope.row.status === 'online' ? 'success' : 'info'" effect="light">{{ scope.row.disabledAt ? '已停用' : scope.row.status === 'online' ? '在线' : '离线' }}</el-tag></template></el-table-column><el-table-column label="最后在线" min-width="180"><template #default="scope">{{ scope.row.lastSeenAt ? new Date(scope.row.lastSeenAt).toLocaleString('zh-CN') : '从未上线' }}</template></el-table-column><el-table-column label="操作" width="100"><template #default="scope"><el-button v-if="scope.row.disabledAt" link type="primary" @click="restore(scope.row.deviceNo)">恢复</el-button></template></el-table-column></el-table></div>
+      <div class="surface-head"><div class="toolbar"><el-input v-model="query" clearable placeholder="搜索设备、型号或池塘" style="width:260px" /><el-select v-model="status" clearable placeholder="全部状态" style="width:140px"><el-option label="在线" value="online" /><el-option label="离线" value="offline" /><el-option label="已停用" value="disabled" /></el-select></div><span style="color:#7b909e;font-size:13px">{{ visibleDevices.length }} 台设备</span></div>
+      <div class="table-wrap"><el-table :data="visibleDevices" stripe><el-table-column prop="deviceNo" label="设备编号" min-width="170" /><el-table-column prop="model" label="型号" min-width="150" /><el-table-column label="所属池塘" min-width="150"><template #default="scope">{{ pondName(scope.row.pondId) }}</template></el-table-column><el-table-column label="状态" width="110"><template #default="scope"><el-tag :type="scope.row.disabledAt ? 'danger' : scope.row.status === 'online' ? 'success' : 'info'" effect="light">{{ scope.row.disabledAt ? '已停用' : scope.row.status === 'online' ? '在线' : '离线' }}</el-tag></template></el-table-column><el-table-column label="最后在线" min-width="180"><template #default="scope">{{ scope.row.lastSeenAt ? new Date(scope.row.lastSeenAt).toLocaleString('zh-CN') : '从未上线' }}</template></el-table-column><el-table-column label="操作" width="130"><template #default="scope"><el-button v-if="scope.row.disabledAt" link type="primary" @click="restore(scope.row.deviceNo)">恢复</el-button><el-button v-else link type="danger" @click="disable(scope.row.deviceNo)">停用</el-button></template></el-table-column></el-table></div>
     </section>
 
     <el-dialog v-model="registerDialog" title="注册监测设备" width="460px">
