@@ -74,6 +74,7 @@ export interface Stats {
 export interface LoginResponse { token: string; expiresIn: number }
 export type LicenseState = 'missing' | 'valid' | 'permanent' | 'not_before' | 'expired' | 'invalid' | 'instance_mismatch' | 'clock_error' | 'overage'
 export interface LicenseStatus { state: LicenseState; deploymentId: string; licenseId: string | null; keyId: string | null; issuedAt: string | null; notBefore: string | null; expiresAt: string | null; maxDevices: number; usedDevices: number; overage: number; features: string[]; payloadSha256: string | null }
+export interface APIKey { keyId: string; tenantId: number; name: string; scopes: string[]; resources: { farmIds?: number[]; pondIds?: number[]; deviceNos?: string[] }; createdAt: string; revokedAt?: string | null }
 export interface Tenant { id: number; name: string; active: boolean; permissionVersion?: number }
 export interface TenantMember { tenantId: number; userId?: number; name: string; role: string; active?: boolean; expiresAt?: string | null }
 export interface DeviceRegistration extends Device { secret: string }

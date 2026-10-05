@@ -2,8 +2,8 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { changePassword, demoMode, getLicense, importLicense } from '@/api/admin'
-import type { LicenseStatus } from '@/types/api'
+import { changePassword, createAPIKey, demoMode, getAPIKeys, getLicense, importLicense, revokeAPIKey, rotateAPIKey } from '@/api/admin'
+import type { APIKey, LicenseStatus } from '@/types/api'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -15,6 +15,10 @@ const licenseLoading = ref(false)
 const importing = ref(false)
 const licenseError = ref('')
 const licenseForbidden = ref(false)
+const apiKeys = ref<APIKey[]>([])
+const apiKeyLoading = ref(false)
+const apiKeyForm = reactive({ name: '', scopes: ['ponds:read', 'devices:read', 'alarms:read'] })
+const issuedSecret = ref('')
 const form = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
 async function submit() {
   if (!form.oldPassword || form.newPassword.length < 8) return ElMessage.warning('请填写旧密码，新密码至少 8 位')
@@ -47,6 +51,11 @@ function onLicenseFile(event: Event) {
   if (event.target instanceof HTMLInputElement) licenseFile.value = event.target.files?.[0] ?? null
 }
 loadLicense()
+async function loadAPIKeys() { apiKeyLoading.value = true; try { apiKeys.value = await getAPIKeys() } catch (error) { ElMessage.error(error instanceof Error ? error.message : 'API Key 加载失败') } finally { apiKeyLoading.value = false } }
+async function issueAPIKey() { if (!apiKeyForm.name.trim()) return ElMessage.warning('请输入 Key 名称'); try { const result = await createAPIKey({ name: apiKeyForm.name.trim(), scopes: apiKeyForm.scopes }); issuedSecret.value = result.secret; apiKeyForm.name = ''; await loadAPIKeys() } catch (error) { ElMessage.error(error instanceof Error ? error.message : 'API Key 创建失败') } }
+async function rotate(key: APIKey) { try { const result = await rotateAPIKey(key.keyId); issuedSecret.value = result.secret; await loadAPIKeys() } catch (error) { ElMessage.error(error instanceof Error ? error.message : 'API Key 轮换失败') } }
+async function revoke(key: APIKey) { try { await revokeAPIKey(key.keyId); await loadAPIKeys() } catch (error) { ElMessage.error(error instanceof Error ? error.message : 'API Key 撤销失败') } }
+loadAPIKeys()
 </script>
 
 <template>
@@ -78,6 +87,7 @@ loadLicense()
       </section>
       <section class="surface"><div class="surface-head"><h3>修改管理员密码</h3></div><div class="surface-body"><el-form label-position="top" style="max-width:440px"><el-form-item label="当前密码" required><el-input v-model="form.oldPassword" type="password" show-password autocomplete="current-password" /></el-form-item><el-form-item label="新密码" required><el-input v-model="form.newPassword" type="password" show-password autocomplete="new-password" placeholder="至少 8 位" /></el-form-item><el-form-item label="确认新密码" required><el-input v-model="form.confirmPassword" type="password" show-password autocomplete="new-password" /></el-form-item><el-button type="primary" color="#0fae9b" :loading="loading" @click="submit">更新密码</el-button></el-form></div></section>
       <aside class="info-panel"><h3>部署接入提示</h3><p>管理后台与服务端集成在同一个 iolink 镜像中，可通过部署地址直接访问。</p><ul><li>公网使用 HTTPS 与 MQTTS</li><li>首次部署使用本地向导设置管理员与租户账号</li><li>使用强随机登录签名密钥</li></ul></aside>
+      <section v-loading="apiKeyLoading" class="surface" aria-label="开放平台 API Key"><div class="surface-head"><h3>开放平台 API Key</h3></div><div class="surface-body"><el-form inline @submit.prevent="issueAPIKey"><el-input v-model="apiKeyForm.name" placeholder="Key 名称" /><el-button type="primary" @click="issueAPIKey">签发 Key</el-button></el-form><p class="muted">密钥只在签发或轮换后显示一次，请立即保存。</p><el-alert v-if="issuedSecret" title="请复制并安全保存 Secret" type="warning" :closable="false"><code>{{ issuedSecret }}</code></el-alert><el-table :data="apiKeys" style="width:100%;margin-top:16px"><el-table-column prop="name" label="名称" /><el-table-column prop="keyId" label="Key ID" /><el-table-column label="状态"><template #default="{ row }">{{ row.revokedAt ? '已撤销' : '有效' }}</template></el-table-column><el-table-column label="操作" width="180"><template #default="{ row }"><el-button text type="primary" :disabled="!!row.revokedAt" @click="rotate(row)">轮换</el-button><el-button text type="danger" :disabled="!!row.revokedAt" @click="revoke(row)">撤销</el-button></template></el-table-column></el-table></div></section>
     </div>
   </div>
 </template>

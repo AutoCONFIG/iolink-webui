@@ -2,7 +2,7 @@ import { http } from './http'
 import { parseLicenseStatus } from './license'
 import { normalizeAlarm, normalizeDevice, normalizeFarm, normalizePond, normalizeRule, normalizeStats } from './adapters'
 import * as demo from './demo'
-import type { AlarmRule, Device, Farm, LicenseStatus, LoginResponse, Pond, Product, ProductModel, ModelField, Tenant, TenantMember } from '@/types/api'
+import type { APIKey, AlarmRule, Device, Farm, LicenseStatus, LoginResponse, Pond, Product, ProductModel, ModelField, Tenant, TenantMember } from '@/types/api'
 
 export const demoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 
@@ -67,6 +67,34 @@ export async function getLicense(): Promise<LicenseStatus> {
 export async function importLicense(file: File) {
   if (demoMode) return
   await http.post('/license', file, { headers: { 'Content-Type': 'application/json' } })
+}
+
+function normalizeAPIKey(value: Record<string, unknown>): APIKey {
+  const resources = (value.resources ?? {}) as Record<string, unknown>
+  return { keyId: String(value.key_id), tenantId: Number(value.tenant_id), name: String(value.name), scopes: Array.isArray(value.scopes) ? value.scopes.map(String) : [], resources: { farmIds: Array.isArray(resources.farm_ids) ? resources.farm_ids.map(Number) : [], pondIds: Array.isArray(resources.pond_ids) ? resources.pond_ids.map(Number) : [], deviceNos: Array.isArray(resources.device_nos) ? resources.device_nos.map(String) : [] }, createdAt: String(value.created_at), revokedAt: value.revoked_at ? String(value.revoked_at) : null }
+}
+
+export async function getAPIKeys(): Promise<APIKey[]> {
+  if (demoMode) return JSON.parse(localStorage.getItem('iolink.demo.api-keys') ?? '[]') as APIKey[]
+  const { data } = await http.get('/api-keys')
+  return data.map(normalizeAPIKey)
+}
+
+export async function createAPIKey(payload: { name: string; scopes: string[] }): Promise<{ key: APIKey; secret: string }> {
+  if (demoMode) { const key = { keyId: `ik_demo_${Date.now()}`, tenantId: 1, name: payload.name, scopes: payload.scopes, resources: {}, createdAt: new Date().toISOString(), revokedAt: null }; const keys = await getAPIKeys(); localStorage.setItem('iolink.demo.api-keys', JSON.stringify([...keys, key])); return { key, secret: 'demo-secret-shown-once' } }
+  const { data } = await http.post('/api-keys', payload)
+  return { key: normalizeAPIKey(data.key), secret: String(data.secret) }
+}
+
+export async function rotateAPIKey(keyId: string): Promise<{ key: APIKey; secret: string }> {
+  if (demoMode) return { key: { keyId: `ik_demo_${Date.now()}`, tenantId: 1, name: 'demo rotation', scopes: ['ponds:read'], resources: {}, createdAt: new Date().toISOString(), revokedAt: null }, secret: 'demo-secret-shown-once' }
+  const { data } = await http.post(`/api-keys/${encodeURIComponent(keyId)}/rotate`)
+  return { key: normalizeAPIKey(data.key), secret: String(data.secret) }
+}
+
+export async function revokeAPIKey(keyId: string) {
+  if (demoMode) { const keys = await getAPIKeys(); localStorage.setItem('iolink.demo.api-keys', JSON.stringify(keys.map((key) => key.keyId === keyId ? { ...key, revokedAt: new Date().toISOString() } : key))); return }
+  await http.post(`/api-keys/${encodeURIComponent(keyId)}/revoke`)
 }
 
 export async function registerDevice(payload: Pick<Device, 'pondId' | 'model'>) {
