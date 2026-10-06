@@ -2,7 +2,7 @@ import { http } from './http'
 import { parseLicenseStatus } from './license'
 import { normalizeAlarm, normalizeDevice, normalizeFarm, normalizePond, normalizeRule, normalizeStats } from './adapters'
 import * as demo from './demo'
-import type { APIKey, AlarmRule, Device, Farm, LicenseStatus, LoginResponse, Pond, Product, ProductModel, ModelField, Tenant, TenantMember } from '@/types/api'
+import type { APIKey, APIKeyAuditEvent, AlarmRule, Device, Farm, LicenseStatus, LoginResponse, Pond, Product, ProductModel, ModelField, Tenant, TenantMember } from '@/types/api'
 
 export const demoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 
@@ -80,9 +80,16 @@ export async function getAPIKeys(): Promise<APIKey[]> {
   return data.map(normalizeAPIKey)
 }
 
-export async function createAPIKey(payload: { name: string; scopes: string[] }): Promise<{ key: APIKey; secret: string }> {
-  if (demoMode) { const key = { keyId: `ik_demo_${Date.now()}`, tenantId: 1, name: payload.name, scopes: payload.scopes, resources: {}, createdAt: new Date().toISOString(), revokedAt: null }; const keys = await getAPIKeys(); localStorage.setItem('iolink.demo.api-keys', JSON.stringify([...keys, key])); return { key, secret: 'demo-secret-shown-once' } }
-  const { data } = await http.post('/api-keys', payload)
+export async function getAPIKeyAudit(): Promise<APIKeyAuditEvent[]> {
+	if (demoMode) return []
+	const { data } = await http.get('/api-keys/audit')
+	return data.map((value: Record<string, unknown>) => ({ id: Number(value.id), tenantId: Number(value.tenant_id), actorId: value.actor_id == null ? undefined : Number(value.actor_id), action: String(value.action), resourceId: String(value.resource_id), metadata: (value.metadata ?? {}) as Record<string, unknown>, createdAt: String(value.created_at) }))
+}
+
+export async function createAPIKey(payload: { name: string; scopes: string[]; resources?: APIKey['resources'] }): Promise<{ key: APIKey; secret: string }> {
+	if (demoMode) { const key = { keyId: `ik_demo_${Date.now()}`, tenantId: 1, name: payload.name, scopes: payload.scopes, resources: payload.resources ?? {}, createdAt: new Date().toISOString(), revokedAt: null }; const keys = await getAPIKeys(); localStorage.setItem('iolink.demo.api-keys', JSON.stringify([...keys, key])); return { key, secret: 'demo-secret-shown-once' } }
+	const resources = payload.resources ? { farm_ids: payload.resources.farmIds ?? [], pond_ids: payload.resources.pondIds ?? [], device_nos: payload.resources.deviceNos ?? [] } : undefined
+	const { data } = await http.post('/api-keys', { name: payload.name, scopes: payload.scopes, resources })
   return { key: normalizeAPIKey(data.key), secret: String(data.secret) }
 }
 

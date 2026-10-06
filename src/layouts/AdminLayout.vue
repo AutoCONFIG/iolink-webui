@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Bell, DataAnalysis, MapLocation, Monitor, Operation, Setting, Fold, Expand, Goods, OfficeBuilding } from '@element-plus/icons-vue'
+import { Bell, DataAnalysis, MapLocation, Monitor, Operation, Setting, Fold, Expand, Goods, OfficeBuilding, Document } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { demoMode } from '@/api/admin'
 
@@ -18,6 +18,7 @@ const nav = [
   { path: '/alarms/rules', label: '报警规则', icon: Operation },
   { path: '/alarms', label: '报警中心', icon: Bell },
   { path: '/system', label: '系统设置', icon: Setting },
+  { path: '/api-keys/audit', label: '开放平台日志', icon: Document },
   { path: '/tenants', label: '组织与成员', icon: OfficeBuilding },
 ]
 

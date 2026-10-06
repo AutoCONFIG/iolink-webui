@@ -14,6 +14,7 @@ const routes = [
       { path: 'alarm-rules', redirect: '/alarms/rules' },
       { path: 'alarms', component: () => import('@/views/AlarmsView.vue'), meta: { title: '报警中心' } },
       { path: 'system', component: () => import('@/views/SystemView.vue'), meta: { title: '系统设置' } },
+      { path: 'api-keys/audit', component: () => import('@/views/APIKeyAuditView.vue'), meta: { title: '开放平台日志' } },
       { path: 'tenants', component: () => import('@/views/TenantsView.vue'), meta: { title: '组织与成员' } },
     ],
   },
