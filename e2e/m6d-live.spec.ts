@@ -49,6 +49,7 @@ test('real tenant owner issues a restricted key, rotates, revokes and reads safe
   await expect(panel.locator('code')).toHaveCount(0)
   const keyTable = panel.locator('.el-table').first()
   const row = keyTable.getByRole('row', { name: new RegExp(data.key.key_id) })
+  await expect(row.getByRole('cell', { name: 'ponds:read', exact: true })).toBeVisible()
   const rotation = page.waitForResponse(r => r.url().endsWith('/rotate'))
   await row.getByRole('button', { name: '轮换' }).click()
   const rotated = issuedSchema.parse(await (await rotation).json())

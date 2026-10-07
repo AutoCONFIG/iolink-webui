@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseAPIKey, parseAPIKeyAudit, parseAPIKeySecret } from '@/domain/api-key'
+import { parseAPIKey, parseAPIKeys, parseAPIKeyAudit, parseAPIKeyAuditEvents, parseAPIKeySecret } from '@/domain/api-key'
 
 const key = {
   key_id: 'ik_123', tenant_id: 1, name: 'integration', scopes: ['ponds:read'],
@@ -21,5 +21,11 @@ describe('API key response boundaries', () => {
   it('rejects malformed audit and secret responses', () => {
     expect(() => parseAPIKeyAudit({ id: 1 })).toThrow()
     expect(() => parseAPIKeySecret(undefined)).toThrow()
+  })
+  it('accepts empty lists and rejects non-array success responses', () => {
+    expect(parseAPIKeys([])).toEqual([])
+    expect(parseAPIKeyAuditEvents([])).toEqual([])
+    expect(() => parseAPIKeys(null)).toThrow()
+    expect(() => parseAPIKeyAuditEvents({})).toThrow()
   })
 })

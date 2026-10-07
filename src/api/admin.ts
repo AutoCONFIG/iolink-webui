@@ -1,7 +1,7 @@
 import { http } from './http'
 import { parseLicenseStatus } from './license'
 import { normalizeAlarm, normalizeDevice, normalizeFarm, normalizePond, normalizeRule, normalizeStats } from './adapters'
-import { parseAPIKey, parseAPIKeyAudit, parseAPIKeySecret } from '@/domain/api-key'
+import { parseAPIKey, parseAPIKeys, parseAPIKeyAuditEvents, parseAPIKeySecret } from '@/domain/api-key'
 import * as demo from './demo'
 import type { APIKey, APIKeyAuditEvent, AlarmRule, Device, Farm, LicenseStatus, LoginResponse, Pond, Product, ProductModel, ModelField, Tenant, TenantMember } from '@/types/api'
 
@@ -72,14 +72,14 @@ export async function importLicense(file: File) {
 
 export async function getAPIKeys(): Promise<APIKey[]> {
   if (demoMode) return JSON.parse(localStorage.getItem('iolink.demo.api-keys') ?? '[]') as APIKey[]
-  const { data } = await http.get('/api-keys')
-  return data.map(parseAPIKey)
+  const { data } = await http.get<unknown>('/api-keys')
+  return parseAPIKeys(data)
 }
 
 export async function getAPIKeyAudit(): Promise<APIKeyAuditEvent[]> {
 	if (demoMode) return []
-	const { data } = await http.get('/api-keys/audit')
-	return data.map(parseAPIKeyAudit)
+	const { data } = await http.get<unknown>('/api-keys/audit')
+	return parseAPIKeyAuditEvents(data)
 }
 
 export async function createAPIKey(payload: { name: string; scopes: string[]; resources?: APIKey['resources'] }): Promise<{ key: APIKey; secret: string }> {

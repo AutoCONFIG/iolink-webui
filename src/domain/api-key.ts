@@ -57,3 +57,11 @@ export function parseAPIKeyAudit(value: unknown) {
 export function parseAPIKeySecret(value: unknown) {
   return secretSchema.parse(value)
 }
+
+export function parseAPIKeys(value: unknown) {
+  return z.array(apiKeySchema).parse(value).map(parseAPIKey)
+}
+
+export function parseAPIKeyAuditEvents(value: unknown) {
+  return z.array(auditSchema).parse(value).map(parseAPIKeyAudit)
+}
