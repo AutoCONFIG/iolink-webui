@@ -7,7 +7,7 @@ async function authenticate(page: import('@playwright/test').Page) {
   })
 }
 
-test('API Key resource scope and audit page use the signed management contract', async ({ page }) => {
+test('demo API Key form and audit navigation smoke', async ({ page }) => {
   await authenticate(page)
   await page.goto('/system')
   await page.getByPlaceholder('Key 名称').fill('scope')

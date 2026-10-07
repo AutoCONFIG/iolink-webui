@@ -29,7 +29,10 @@ const auditSchema = z.object({
 const secretSchema = z.string().min(1)
 
 export function parseAPIKey(value: unknown) {
-  const parsed = apiKeySchema.parse(value)
+  return mapAPIKey(apiKeySchema.parse(value))
+}
+
+function mapAPIKey(parsed: z.infer<typeof apiKeySchema>) {
   return {
     keyId: parsed.key_id,
     tenantId: parsed.tenant_id,
@@ -42,7 +45,10 @@ export function parseAPIKey(value: unknown) {
 }
 
 export function parseAPIKeyAudit(value: unknown) {
-  const parsed = auditSchema.parse(value)
+  return mapAPIKeyAudit(auditSchema.parse(value))
+}
+
+function mapAPIKeyAudit(parsed: z.infer<typeof auditSchema>) {
   return {
     id: parsed.id,
     tenantId: parsed.tenant_id,
@@ -59,9 +65,9 @@ export function parseAPIKeySecret(value: unknown) {
 }
 
 export function parseAPIKeys(value: unknown) {
-  return z.array(apiKeySchema).parse(value).map(parseAPIKey)
+  return z.array(apiKeySchema).parse(value).map(mapAPIKey)
 }
 
 export function parseAPIKeyAuditEvents(value: unknown) {
-  return z.array(auditSchema).parse(value).map(parseAPIKeyAudit)
+  return z.array(auditSchema).parse(value).map(mapAPIKeyAudit)
 }

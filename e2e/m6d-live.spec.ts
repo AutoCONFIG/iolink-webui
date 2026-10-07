@@ -18,12 +18,31 @@ test('real tenant owner issues a restricted key, rotates, revokes and reads safe
   expect(await emptyAudit.json()).toEqual([])
   const invalidField = await page.request.post('/admin/v1/api-keys', { headers: apiHeaders, data: { name: 'wrong-field', scopes: ['ponds:read'], resources: { farmIds: [8301] } } })
   expect(invalidField.status()).toBe(400)
+  for (const resources of [{ farm_ids: [0] }, { farm_ids: [-1] }, { pond_ids: [0] }, { device_nos: [''] }, { farm_ids: null }, { pond_ids: null }, { device_nos: null }, null]) {
+    const invalid = await page.request.post('/admin/v1/api-keys', { headers: apiHeaders, data: { name: 'invalid-resource', scopes: ['ponds:read'], resources } })
+    expect(invalid.status()).toBe(400)
+  }
+  for (const resources of [{ farm_ids: [8303] }, { pond_ids: [8303] }, { device_nos: ['m6d-foreign'] }]) {
+    const foreign = await page.request.post('/admin/v1/api-keys', { headers: apiHeaders, data: { name: 'foreign-resource', scopes: ['ponds:read'], resources } })
+    expect(foreign.status()).toBe(404)
+  }
+  let issueRequests = 0
+  page.on('request', request => { if (request.url().endsWith('/admin/v1/api-keys') && request.method() === 'POST') issueRequests++ })
   await panel.getByPlaceholder('Key 名称').fill('browser-live')
   await panel.getByPlaceholder('农场 ID（逗号分隔，可选）').fill('8301x')
   await panel.getByRole('button', { name: '签发 Key' }).click()
   await expect(page.getByText('资源 ID 必须是逗号分隔的正整数，请检查输入')).toBeVisible()
   const unchanged = await page.request.get('/admin/v1/api-keys', { headers: apiHeaders })
   expect(await unchanged.json()).toEqual([])
+  expect(issueRequests).toBe(0)
+  await panel.getByPlaceholder('农场 ID（逗号分隔，可选）').fill('')
+  for (const malformed of [',', ', ,', 'm6d-allowed,']) {
+    await panel.getByPlaceholder('设备号（逗号分隔，可选）').fill(malformed)
+    await panel.getByRole('button', { name: '签发 Key' }).click()
+    await expect(page.getByText('设备号须用逗号分隔，不能有空项，最多 100 个')).toBeVisible()
+    expect(await (await page.request.get('/admin/v1/api-keys', { headers: apiHeaders })).json()).toEqual([])
+    expect(issueRequests).toBe(0)
+  }
   await panel.getByPlaceholder('农场 ID（逗号分隔，可选）').fill('8301')
   await panel.getByPlaceholder('池塘 ID（逗号分隔，可选）').fill('8301')
   await panel.getByPlaceholder('设备号（逗号分隔，可选）').fill('m6d-allowed')

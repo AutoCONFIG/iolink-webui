@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus'
 import { changePassword, createAPIKey, demoMode, getAPIKeyAudit, getAPIKeys, getLicense, importLicense, revokeAPIKey, rotateAPIKey } from '@/api/admin'
 import type { APIKey, APIKeyAuditEvent, LicenseStatus } from '@/types/api'
 import { useAuthStore } from '@/stores/auth'
-import { parseResourceIDs } from '@/domain/api-key-scope'
+import { parseDeviceNos, parseResourceIDs } from '@/domain/api-key-scope'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -54,7 +54,6 @@ function onLicenseFile(event: Event) {
 }
 loadLicense()
 async function loadAPIKeys() { apiKeyLoading.value = true; try { [apiKeys.value, apiKeyAudit.value] = await Promise.all([getAPIKeys(), getAPIKeyAudit()]) } catch (error) { ElMessage.error(error instanceof Error ? error.message : 'API Key 加载失败') } finally { apiKeyLoading.value = false } }
-function parseDeviceNos(value: string) { return value.split(',').map((item) => item.trim()).filter(Boolean) }
 async function issueAPIKey() { if (!apiKeyForm.name.trim()) return ElMessage.warning('请输入 Key 名称'); try { const result = await createAPIKey({ name: apiKeyForm.name.trim(), scopes: apiKeyForm.scopes, resources: { farmIds: parseResourceIDs(apiKeyForm.farmIds), pondIds: parseResourceIDs(apiKeyForm.pondIds), deviceNos: parseDeviceNos(apiKeyForm.deviceNos) } }); issuedSecret.value = result.secret; apiKeyForm.name = ''; await loadAPIKeys() } catch (error) { ElMessage.error(error instanceof Error ? error.message : 'API Key 创建失败') } }
 async function rotate(key: APIKey) { try { const result = await rotateAPIKey(key.keyId); issuedSecret.value = result.secret; await loadAPIKeys() } catch (error) { ElMessage.error(error instanceof Error ? error.message : 'API Key 轮换失败') } }
 async function revoke(key: APIKey) { try { await revokeAPIKey(key.keyId); await loadAPIKeys() } catch (error) { ElMessage.error(error instanceof Error ? error.message : 'API Key 撤销失败') } }
