@@ -42,6 +42,7 @@ test('real tenant owner issues a restricted key, rotates, revokes and reads safe
     await expect(page.getByText('设备号须用逗号分隔，不能有空项，最多 100 个')).toBeVisible()
     expect(await (await page.request.get('/admin/v1/api-keys', { headers: apiHeaders })).json()).toEqual([])
     expect(issueRequests).toBe(0)
+    await expect(page.getByText('设备号须用逗号分隔，不能有空项，最多 100 个')).toHaveCount(0)
   }
   await panel.getByPlaceholder('农场 ID（逗号分隔，可选）').fill('8301')
   await panel.getByPlaceholder('池塘 ID（逗号分隔，可选）').fill('8301')
