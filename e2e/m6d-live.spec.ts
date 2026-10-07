@@ -42,7 +42,8 @@ test('real tenant owner issues a restricted key, rotates, revokes and reads safe
   expect(await panel.locator('code').textContent() === data.secret).toBe(true)
   for (const width of [375, 768, 1440]) {
     await page.setViewportSize({ width, height: 960 })
-    await page.screenshot({ path: info.outputPath(`key-issued-${width}.png`), fullPage: true, mask: [panel.locator('code')] })
+    await page.screenshot({ path: info.outputPath(`key-issued-${width}.png`), fullPage: true, animations: 'disabled', mask: [panel.locator('.el-alert')] })
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }
   await page.reload()
   await expect(panel.locator('code')).toHaveCount(0)
