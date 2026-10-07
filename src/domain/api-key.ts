@@ -13,7 +13,7 @@ const apiKeySchema = z.object({
   scopes: z.array(z.string().min(1)),
   resources: resourceSchema,
   created_at: z.string().datetime({ offset: true }),
-  revoked_at: z.string().datetime({ offset: true }).nullable(),
+  revoked_at: z.string().datetime({ offset: true }).nullable().optional(),
 })
 
 const auditSchema = z.object({
@@ -37,7 +37,7 @@ export function parseAPIKey(value: unknown) {
     scopes: parsed.scopes,
     resources: { farmIds: parsed.resources.farm_ids, pondIds: parsed.resources.pond_ids, deviceNos: parsed.resources.device_nos },
     createdAt: parsed.created_at,
-    revokedAt: parsed.revoked_at,
+    revokedAt: parsed.revoked_at ?? null,
   }
 }
 

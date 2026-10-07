@@ -9,7 +9,8 @@ const key = {
 
 describe('API key response boundaries', () => {
   it('maps the concrete wire shape without coercion', () => {
-    expect(parseAPIKey(key)).toMatchObject({ keyId: 'ik_123', tenantId: 1, resources: { farmIds: [4] } })
+    const { revoked_at: _revokedAt, ...issuedKey } = key
+    expect(parseAPIKey(issuedKey)).toMatchObject({ keyId: 'ik_123', tenantId: 1, resources: { farmIds: [4] }, revokedAt: null })
     expect(parseAPIKeySecret('secret-value')).toBe('secret-value')
   })
   it.each([
