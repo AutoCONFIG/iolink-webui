@@ -8,9 +8,9 @@ import type { APIKey, APIKeyAuditEvent, AlarmRule, Device, Farm, LicenseStatus, 
 export const demoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
-  if (demoMode) return demo.demoLogin(username, password)
+  if (demoMode) return { ...await demo.demoLogin(username, password), platformAdmin: false }
   const { data } = await http.post('/login', { username, password })
-  return { token: data.token, expiresIn: data.expires_in }
+  return { token: data.token, expiresIn: data.expires_in, platformAdmin: data.platform_admin === true }
 }
 
 export async function getStats() {

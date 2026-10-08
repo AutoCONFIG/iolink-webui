@@ -16,6 +16,7 @@ http.interceptors.response.use(
     if (error?.response?.status === 401 && !isCredentialCheck) {
       localStorage.removeItem('iolink.admin.token')
       localStorage.removeItem('iolink.admin.expires_at')
+      localStorage.removeItem('iolink.admin.platform')
       if (location.pathname !== '/login') location.assign('/login')
     }
     const message = error?.response?.data?.error || error?.message || '请求失败，请稍后重试'

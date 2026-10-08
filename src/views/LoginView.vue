@@ -12,7 +12,7 @@ const formRef = ref<FormInstance>()
 const loading = ref(false)
 const form = reactive({ username: demoMode ? 'admin' : '', password: demoMode ? 'admin123' : '' })
 const rules: FormRules = {
-  username: [{ required: true, message: '请输入管理员用户名', trigger: 'blur' }],
+  username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 }
 
@@ -43,10 +43,11 @@ async function submit() {
       <div class="login-card">
         <h2>欢迎回来</h2><p>登录 IoLink 管理控制台</p>
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top" size="large" @keyup.enter="submit">
-          <el-form-item label="管理员账号" prop="username"><el-input v-model="form.username" autocomplete="username" placeholder="请输入用户名" /></el-form-item>
+          <el-form-item label="账号" prop="username"><el-input v-model="form.username" autocomplete="username" placeholder="请输入用户名" /></el-form-item>
           <el-form-item label="登录密码" prop="password"><el-input v-model="form.password" type="password" show-password autocomplete="current-password" placeholder="请输入密码" /></el-form-item>
           <el-button type="primary" color="#0fae9b" :loading="loading" style="width:100%;margin-top:8px" @click="submit">进入控制台</el-button>
         </el-form>
+        <router-link v-if="!demoMode" to="/register">注册业务账号</router-link>
         <div v-if="demoMode" class="login-demo">演示账号已填入：admin / admin123。切换真实接口请设置 <code>VITE_DEMO_MODE=false</code>。</div>
       </div>
     </section>
