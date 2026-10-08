@@ -1,7 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { getSetupStatus } from '@/api/setup'
+import { demoMode } from '@/api/admin'
 
 const routes = [
+  { path: '/setup', component: () => import('@/views/SetupView.vue'), meta: { public: true, title: '初始化配置' } },
   { path: '/login', component: () => import('@/views/LoginView.vue'), meta: { public: true, title: '登录' } },
   {
     path: '/', component: () => import('@/layouts/AdminLayout.vue'), redirect: '/dashboard',
@@ -23,9 +26,19 @@ const routes = [
 
 export const router = createRouter({ history: createWebHistory('/'), routes })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
   document.title = `${String(to.meta.title ?? '管理平台')} · IoLink`
+  if (!demoMode) {
+    try {
+      const status = await getSetupStatus()
+      if (status.required) return to.path === '/setup' ? true : '/setup'
+      if (to.path === '/setup') return '/login'
+    } catch (error) {
+      if (!(error instanceof Error)) throw error
+      return to.path === '/setup' ? true : '/setup'
+    }
+  }
   if (!to.meta.public && !auth.isAuthenticated()) return '/login'
   if (to.path === '/login' && auth.isAuthenticated()) return '/dashboard'
 })

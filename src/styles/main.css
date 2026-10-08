@@ -14,7 +14,20 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; }
+body { margin: 0; min-width: 0; min-height: 100vh; }
+.setup-page { min-height: 100vh; display: grid; place-items: center; padding: 30px 20px; }
+.setup-card { width: min(480px, 100%); padding: 30px; }
+.setup-brand { color: var(--teal); font-size: 18px; font-weight: 700; }
+.setup-card h1 { font-size: 26px; margin: 12px 0; }
+.setup-intro { color: var(--muted); line-height: 1.6; }
+.setup-form { display: grid; gap: 12px; margin-top: 26px; }
+.setup-form label { font-size: 16px; font-weight: 600; }
+.setup-form input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: white; color: inherit; }
+.setup-form input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.setup-help { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0; overflow-wrap: anywhere; }
+.setup-error { color: var(--danger); margin: 0; }
+.setup-form .el-button { min-height: 44px; width: 100%; margin-top: 8px; }
+@media (max-width: 760px) { .setup-card { padding: 20px; }.setup-intro,.setup-form input { font-size: 17px; }.setup-help { font-size: 15px; } }
 button, input { font: inherit; }
 .el-dialog { max-width: calc(100vw - 32px); }
 
