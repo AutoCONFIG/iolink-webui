@@ -28,6 +28,24 @@ const auditSchema = z.object({
 
 const secretSchema = z.string().min(1)
 
+const storedAPIKeySchema = z.object({
+  keyId: apiKeySchema.shape.key_id,
+  tenantId: apiKeySchema.shape.tenant_id,
+  name: apiKeySchema.shape.name,
+  scopes: apiKeySchema.shape.scopes,
+  resources: z.object({
+    farmIds: resourceSchema.shape.farm_ids,
+    pondIds: resourceSchema.shape.pond_ids,
+    deviceNos: resourceSchema.shape.device_nos,
+  }),
+  createdAt: apiKeySchema.shape.created_at,
+  revokedAt: apiKeySchema.shape.revoked_at,
+})
+
+export function parseStoredAPIKeys(value: unknown) {
+  return z.array(storedAPIKeySchema).parse(value).map(key => ({ ...key, revokedAt: key.revokedAt ?? null }))
+}
+
 export function parseAPIKey(value: unknown) {
   return mapAPIKey(apiKeySchema.parse(value))
 }

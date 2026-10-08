@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseAPIKey, parseAPIKeys, parseAPIKeyAudit, parseAPIKeyAuditEvents, parseAPIKeySecret } from '@/domain/api-key'
+import { parseAPIKey, parseAPIKeys, parseAPIKeyAudit, parseAPIKeyAuditEvents, parseAPIKeySecret, parseStoredAPIKeys } from '@/domain/api-key'
 
 const key = {
   key_id: 'ik_123', tenant_id: 1, name: 'integration', scopes: ['ponds:read'],
@@ -8,6 +8,12 @@ const key = {
 }
 
 describe('API key response boundaries', () => {
+  it('parses stored demo keys and rejects malformed local storage values', () => {
+    const stored = parseAPIKey(key)
+    expect(parseStoredAPIKeys([stored])).toEqual([stored])
+    expect(() => parseStoredAPIKeys([{ ...stored, tenantId: '1' }])).toThrow()
+    expect(() => parseStoredAPIKeys({})).toThrow()
+  })
   it('maps the concrete wire shape without coercion', () => {
     const { revoked_at: _revokedAt, ...issuedKey } = key
     expect(parseAPIKey(issuedKey)).toMatchObject({ keyId: 'ik_123', tenantId: 1, resources: { farmIds: [4] }, revokedAt: null })
