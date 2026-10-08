@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Bell, DataAnalysis, MapLocation, Monitor, Operation, Setting, Fold, Expand, Goods, OfficeBuilding, Document } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { demoMode } from '@/api/admin'
+import VersionLabel from '@/components/VersionLabel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -40,7 +41,7 @@ function logout() {
           <el-icon><component :is="item.icon" /></el-icon><span>{{ item.label }}</span>
         </router-link>
       </nav>
-      <div class="sidebar-foot"><span v-if="!collapsed">{{ auth.platformAdmin ? '平台管理空间' : '我的业务空间' }}</span></div>
+      <div class="sidebar-foot"><span v-if="!collapsed">{{ auth.platformAdmin ? '平台管理空间' : '我的业务空间' }}</span><VersionLabel /></div>
     </aside>
     <section class="workspace">
       <header class="topbar">

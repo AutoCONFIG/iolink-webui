@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 const requests = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn() }))
-vi.mock('../src/api/http', () => ({ http: requests }))
+const userRequests = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn() }))
+vi.mock('../src/api/http', () => ({ http: requests, userHttp: userRequests }))
 beforeEach(() => vi.stubEnv('VITE_DEMO_MODE', 'false'))
-afterEach(() => { vi.clearAllMocks(); vi.unstubAllEnvs() })
+afterEach(() => { vi.clearAllMocks(); vi.unstubAllEnvs(); globalThis.localStorage?.clear() })
 
 it('rejects malformed server roles and counters instead of inventing values', async () => {
   const { getSession, getPlatformStats } = await import('../src/api/platform')
@@ -17,7 +18,7 @@ it('parses real platform counters and submits registration without authority or 
   requests.get.mockResolvedValue({ data: { tenants: 2, users: 4, active_users: 3, devices: 6, online_devices: 5 } })
   expect(await getPlatformStats()).toEqual({ tenants: 2, users: 4, activeUsers: 3, devices: 6, onlineDevices: 5 })
   await registerUser('customer', 'Customer-pass-1234')
-  expect(requests.post).toHaveBeenCalledWith('/register', { username: 'customer', password: 'Customer-pass-1234' })
+  expect(userRequests.post).toHaveBeenCalledWith('/register', { username: 'customer', password: 'Customer-pass-1234' })
   requests.post.mockResolvedValue({ data: { id: 7, name: 'org', active: true, permission_version: 0 } })
   expect(await createTenant('org')).toEqual({ id: 7, name: 'org', active: true, permissionVersion: 0 })
 })

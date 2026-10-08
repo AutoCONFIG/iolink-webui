@@ -1,16 +1,17 @@
 import { z } from 'zod'
-import { http } from './http'
+import { http, userHttp } from './http'
 import type { PlatformStats, Tenant } from '@/types/api'
 
 const sessionSchema = z.object({ platform_admin: z.boolean(), tenant_id: z.number().int().nonnegative(), tenant_role: z.string() })
 export async function getSession() {
   if (import.meta.env.VITE_DEMO_MODE === 'true') return { platform_admin: false, tenant_id: 1, tenant_role: 'owner' }
-  const response = await http.get<unknown>('/session')
+  const client = localStorage.getItem('iolink.admin.platform') === 'true' ? http : userHttp
+  const response = await client.get<unknown>('/session')
   return sessionSchema.parse(response.data)
 }
 
 export async function registerUser(username: string, password: string): Promise<void> {
-  await http.post('/register', { username, password })
+  await userHttp.post('/register', { username, password })
 }
 
 const userSchema = z.object({ id: z.number().int().positive(), username: z.string(), name: z.string() })

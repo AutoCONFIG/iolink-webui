@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getTenantMembers, getTenants, updateTenantMember } from '@/api/admin'
+import { getTenantMembers, getTenants, getUserTenants, updateTenantMember } from '@/api/admin'
 import { formatSupportExpiry, parseSupportExpiry } from '@/domain/supportExpiry'
 import type { Tenant, TenantMember } from '@/types/api'
 import { useAuthStore } from '@/stores/auth'
@@ -46,7 +46,7 @@ async function loadMembers(tenant: Tenant) {
 async function load() {
   loading.value = true
   try {
-    tenants.value = await getTenants()
+    tenants.value = await (auth.platformAdmin ? getTenants() : getUserTenants())
     if (auth.platformAdmin) users.value = await getPlatformUsers()
     if (tenants.value[0]) await loadMembers(tenants.value[0])
   }

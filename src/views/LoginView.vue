@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { demoMode } from '@/api/admin'
+import VersionLabel from '@/components/VersionLabel.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -41,7 +42,7 @@ async function submit() {
     </section>
     <section class="login-form-panel">
       <div class="login-card">
-        <h2>欢迎回来</h2><p>登录 IoLink 管理控制台</p>
+        <h2>欢迎回来</h2><p>登录 IoLink 管理控制台 · <VersionLabel /></p>
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top" size="large" @keyup.enter="submit">
           <el-form-item label="账号" prop="username"><el-input v-model="form.username" autocomplete="username" placeholder="请输入用户名" /></el-form-item>
           <el-form-item label="登录密码" prop="password"><el-input v-model="form.password" type="password" show-password autocomplete="current-password" placeholder="请输入密码" /></el-form-item>

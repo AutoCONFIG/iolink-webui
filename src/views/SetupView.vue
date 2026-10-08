@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getSetupStatus, initializeAdministrator, SetupError } from '@/api/setup'
+import VersionLabel from '@/components/VersionLabel.vue'
 
 const router = useRouter()
 const state = ref<'checking' | 'required' | 'failed'>('checking')
@@ -47,7 +48,7 @@ onMounted(checkStatus)
 <template>
   <main class="setup-page">
     <section class="surface setup-card" aria-labelledby="setup-title">
-      <span class="setup-brand">IoLink</span>
+      <span class="setup-brand">IoLink · <VersionLabel /></span>
       <h1 id="setup-title">初始化配置</h1>
       <p class="setup-intro">首次使用，请设置管理员账号。保存后即可登录管理平台。</p>
       <p v-if="state === 'checking'" role="status">正在检查初始化状态…</p>
