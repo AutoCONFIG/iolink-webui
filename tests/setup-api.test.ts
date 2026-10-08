@@ -27,6 +27,7 @@ describe('bootstrap HTTP boundary', () => {
       await api.initializeAdministrator('operator', 'Operator-test-1234', 'fixture-key')
       expect(seen).toEqual([
         { path: '/setup/v1/status', key: undefined, body: '' },
+        { path: '/setup/v1/status', key: undefined, body: '' },
         { path: '/setup/v1/initialize', key: 'fixture-key', body: '{"username":"operator","password":"Operator-test-1234"}' },
       ])
     } finally { vi.restoreAllMocks(); server.close(); await once(server, 'close') }
@@ -34,6 +35,7 @@ describe('bootstrap HTTP boundary', () => {
   it.each([401, 409, 503])('reports safe errors for HTTP %s', async status => {
     const axios = (await import('axios')).default
     vi.spyOn(axios, 'create').mockReturnValue(axios)
+    vi.spyOn(axios, 'get').mockResolvedValue({ data: { required: true } })
     vi.spyOn(axios, 'post').mockRejectedValue(new axios.AxiosError('private database secret', undefined, undefined, undefined, {
       status, statusText: 'failure', headers: {}, config: { headers: new axios.AxiosHeaders() }, data: { error: 'private database secret' },
     }))
@@ -41,6 +43,30 @@ describe('bootstrap HTTP boundary', () => {
       const { initializeAdministrator } = await import('../src/api/setup')
       await expect(initializeAdministrator('operator', 'password', 'key')).rejects.toMatchObject({ status })
       await expect(initializeAdministrator('operator', 'password', 'key')).rejects.not.toThrow('private database secret')
+    } finally { vi.restoreAllMocks() }
+  })
+  it('recognizes a committed initialization when the response is lost', async () => {
+    const axios = (await import('axios')).default
+    vi.spyOn(axios, 'create').mockReturnValue(axios)
+    const get = vi.spyOn(axios, 'get').mockResolvedValueOnce({ data: { required: true } }).mockResolvedValueOnce({ data: { required: false } })
+    const post = vi.spyOn(axios, 'post').mockRejectedValue(new axios.AxiosError('connection lost'))
+    try {
+      const { initializeAdministrator } = await import('../src/api/setup')
+      await expect(initializeAdministrator('operator', 'password', 'key')).resolves.toBeUndefined()
+      expect(get).toHaveBeenCalledTimes(2)
+      expect(post).toHaveBeenCalledTimes(1)
+    } finally { vi.restoreAllMocks() }
+  })
+  it('blocks another write while initialization status is unavailable', async () => {
+    const axios = (await import('axios')).default
+    vi.spyOn(axios, 'create').mockReturnValue(axios)
+    vi.spyOn(axios, 'get').mockResolvedValueOnce({ data: { required: true } }).mockRejectedValue(new axios.AxiosError('connection lost'))
+    const post = vi.spyOn(axios, 'post').mockRejectedValue(new axios.AxiosError('connection lost'))
+    try {
+      const { initializeAdministrator } = await import('../src/api/setup')
+      await expect(initializeAdministrator('operator', 'password', 'key')).rejects.toMatchObject({ status: 0 })
+      await expect(initializeAdministrator('operator', 'password', 'key')).rejects.toMatchObject({ status: 0 })
+      expect(post).toHaveBeenCalledTimes(1)
     } finally { vi.restoreAllMocks() }
   })
 })

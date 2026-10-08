@@ -30,7 +30,16 @@ export async function getSetupStatus(): Promise<z.infer<typeof statusSchema>> {
 }
 
 export async function initializeAdministrator(username: string, password: string, key: string): Promise<void> {
+  const status = await getSetupStatus()
+  if (!status.required) throw new SetupError('系统已初始化，请前往登录', 409)
   try {
     await setupHTTP.post('/initialize', { username, password }, { headers: { 'X-IoLink-Setup-Key': key } })
-  } catch (error) { throw setupError(error) }
+  } catch (error) {
+    const failure = setupError(error)
+    if (failure.status === 0 || failure.status >= 500) {
+      const current = await getSetupStatus()
+      if (!current.required) return
+    }
+    throw failure
+  }
 }
