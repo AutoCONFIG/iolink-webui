@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { assignDeviceProduct, createProduct, createProductModel, getProductModels, getProducts, publishProductModel } from '@/api/admin'
 import type { ModelField, Product, ProductModel } from '@/types/api'
+import { useAuthStore } from '@/stores/auth'
 
 const products = ref<Product[]>([])
 const models = ref<ProductModel[]>([])
@@ -18,6 +19,8 @@ const fieldMax = ref('')
 const fieldEnum = ref('')
 const pendingFields = ref<ModelField[]>([])
 const deviceNo = ref('')
+const auth = useAuthStore()
+const canManage = computed(() => ['owner', 'admin'].includes(auth.tenantRole))
 
 async function load() {
   loading.value = true
@@ -61,16 +64,16 @@ onMounted(load)
   <div class="page-intro"><div><h2>产品与物模型</h2><p>查看产品、模型版本与设备采集字段。</p></div></div>
   <div class="settings-grid" v-loading="loading">
     <section class="surface"><div class="surface-head"><h3>产品目录</h3></div><div class="surface-body">
-      <div class="toolbar"><el-input v-model="name" placeholder="新产品名称" @keyup.enter="save" /><el-button type="primary" color="#0fae9b" :loading="saving" @click="save">创建</el-button></div>
+      <div v-if="canManage" class="toolbar"><el-input v-model="name" placeholder="新产品名称" @keyup.enter="save" /><el-button type="primary" color="#0fae9b" :loading="saving" @click="save">创建</el-button></div>
       <el-empty v-if="!products.length" description="暂无产品" />
       <button v-for="product in products" :key="product.id" class="product-row" :class="{ selected: selected?.id === product.id }" @click="select(product)"><strong>{{ product.name }}</strong><small>#{{ product.id }}</small></button>
     </div></section>
     <section class="surface"><div class="surface-head"><div><h3>{{ selected?.name ?? '选择产品' }}</h3><small>模型版本按版本号保留历史</small></div></div><div class="surface-body">
-      <div v-if="selected" class="toolbar"><el-input v-model="fieldName" placeholder="字段标识，例如 mode" /><el-select v-model="fieldType" style="width:130px"><el-option label="数值" value="number" /><el-option label="整数" value="integer" /><el-option label="布尔" value="boolean" /><el-option label="文本/枚举" value="string" /></el-select><el-input v-model="fieldUnit" placeholder="单位" style="width:100px" /><el-input v-model="fieldMin" placeholder="最小值" style="width:90px" /><el-input v-model="fieldMax" placeholder="最大值" style="width:90px" /><el-input v-model="fieldEnum" placeholder="枚举值，用逗号分隔" style="width:180px" /><el-button @click="queueField">加入字段</el-button><el-button type="primary" color="#0fae9b" :loading="saving" @click="addModel">新建版本</el-button></div>
+      <div v-if="selected && canManage" class="toolbar"><el-input v-model="fieldName" placeholder="字段标识，例如 mode" /><el-select v-model="fieldType" style="width:130px"><el-option label="数值" value="number" /><el-option label="整数" value="integer" /><el-option label="布尔" value="boolean" /><el-option label="文本/枚举" value="string" /></el-select><el-input v-model="fieldUnit" placeholder="单位" style="width:100px" /><el-input v-model="fieldMin" placeholder="最小值" style="width:90px" /><el-input v-model="fieldMax" placeholder="最大值" style="width:90px" /><el-input v-model="fieldEnum" placeholder="枚举值，用逗号分隔" style="width:180px" /><el-button @click="queueField">加入字段</el-button><el-button type="primary" color="#0fae9b" :loading="saving" @click="addModel">新建版本</el-button></div>
       <div v-if="selected && pendingFields.length" class="field-draft">待加入：<span v-for="field in pendingFields" :key="field.identifier" class="draft-chip">{{ field.identifier }} <button type="button" :aria-label="`移除 ${field.identifier}`" @click="removePending(field.identifier)">×</button></span></div>
-      <div v-if="selected" class="toolbar"><el-input v-model="deviceNo" placeholder="设备编号" /><el-button @click="assign">升级到当前产品最新版本</el-button></div>
+      <div v-if="selected && canManage" class="toolbar"><el-input v-model="deviceNo" placeholder="设备编号" /><el-button @click="assign">升级到当前产品最新版本</el-button></div>
       <el-empty v-if="!selected" description="选择产品查看模型" />
-      <el-table v-else :data="models" stripe><el-table-column prop="version" label="版本" width="90" /><el-table-column label="字段"><template #default="scope">{{ scope.row.fields.map((field: { identifier: string }) => field.identifier).join('、') }}</template></el-table-column><el-table-column label="状态" width="150"><template #default="scope"><el-button v-if="!scope.row.publishedAt" link type="primary" @click="publish(scope.row.version)">发布</el-button><el-tag :type="scope.row.publishedAt ? 'success' : 'info'">{{ scope.row.publishedAt ? '已发布' : '草稿' }}</el-tag></template></el-table-column></el-table>
+      <el-table v-else :data="models" stripe><el-table-column prop="version" label="版本" width="90" /><el-table-column label="字段"><template #default="scope">{{ scope.row.fields.map((field: { identifier: string }) => field.identifier).join('、') }}</template></el-table-column><el-table-column label="状态" width="150"><template #default="scope"><el-button v-if="canManage && !scope.row.publishedAt" link type="primary" @click="publish(scope.row.version)">发布</el-button><el-tag :type="scope.row.publishedAt ? 'success' : 'info'">{{ scope.row.publishedAt ? '已发布' : '草稿' }}</el-tag></template></el-table-column></el-table>
     </div></section>
   </div>
 </template>

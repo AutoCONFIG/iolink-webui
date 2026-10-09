@@ -4,7 +4,7 @@ import { createSSRApp } from 'vue'
 import { renderToString } from '@vue/server-renderer'
 
 const mocks = vi.hoisted(() => ({ session: vi.fn(), login: vi.fn() }))
-vi.mock('../src/api/platform', () => ({ getSession: mocks.session, getPlatformStats: vi.fn() }))
+vi.mock('../src/api/platform', () => ({ getSession: mocks.session, getPlatformStats: vi.fn().mockResolvedValue({ tenants: 0, users: 0, activeUsers: 0, devices: 0, onlineDevices: 0 }) }))
 vi.mock('../src/api/admin', () => ({ login: mocks.login, demoMode: false, getAlarms: vi.fn(), getFarms: vi.fn(), getPonds: vi.fn(), getStats: vi.fn() }))
 
 beforeEach(() => {
