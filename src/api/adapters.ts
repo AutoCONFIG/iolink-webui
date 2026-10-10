@@ -14,6 +14,7 @@ export function normalizeReading(input: unknown): Reading | null {
   }
   return {
     ts: asString(pick(raw, 'ts', 'Timestamp')),
+    timestamps: raw.timestamps && typeof raw.timestamps === 'object' ? Object.fromEntries(Object.entries(raw.timestamps as Record<string, unknown>).map(([key, value]) => [key, typeof value === 'string' ? value : null])) : undefined,
     temperature: optional('temperature', 'Temperature'),
     dissolvedOxygen: optional('dissolved_oxygen', 'DO'),
     ph: optional('ph', 'PH'),
@@ -50,11 +51,14 @@ export function normalizeDevice(raw: Raw): Device {
     id: asNumber(pick(raw, 'id', 'ID')),
     pondId: asNumber(pick(raw, 'pond_id', 'PondID')),
     deviceNo: asString(pick(raw, 'device_no', 'DeviceNo')),
+    name: asString(pick(raw, 'name', 'Name')) || undefined,
     model: asString(pick(raw, 'model', 'Model')),
     status: asString(pick(raw, 'status', 'Status'), 'offline') as Device['status'],
     lastSeenAt: asString(pick(raw, 'last_seen_at', 'LastSeenAt')) || null,
     createdAt: asString(pick(raw, 'created_at', 'CreatedAt')),
     disabledAt: asString(pick(raw, 'disabled_at', 'DisabledAt')) || null,
+    reportInterval: asNumber(pick(raw, 'report_interval', 'ReportInterval')) || undefined,
+    latest: normalizeReading(raw.latest),
   }
 }
 

@@ -51,8 +51,8 @@ describe('backend adapters', () => {
 
   it('normalizes readings and empty latest values', () => {
     expect(normalizeReading(null)).toBeNull()
-    expect(normalizeReading({ Timestamp: '2026-09-16T00:00:00Z', Temperature: 27.2, DO: 6.3, PH: 7.8 })).toEqual({
-      ts: '2026-09-16T00:00:00Z', temperature: 27.2, dissolvedOxygen: 6.3, ph: 7.8, turbidity: null, salinity: null,
+    expect(normalizeReading({ Timestamp: '2026-09-16T00:00:00Z', Temperature: 27.2, DO: 6.3, PH: 7.8, timestamps: { temperature: '2026-09-16T00:00:00Z' } })).toEqual({
+      ts: '2026-09-16T00:00:00Z', timestamps: { temperature: '2026-09-16T00:00:00Z' }, temperature: 27.2, dissolvedOxygen: 6.3, ph: 7.8, turbidity: null, salinity: null,
     })
   })
 

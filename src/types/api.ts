@@ -5,6 +5,7 @@ export type MetricKey = 'temperature' | 'dissolved_oxygen' | 'ph' | 'turbidity' 
 
 export interface Reading {
   ts?: string
+  timestamps?: Record<string, string | null>
   temperature?: number | null
   dissolvedOxygen?: number | null
   ph?: number | null
@@ -34,11 +35,14 @@ export interface Device {
   id?: number
   pondId: number
   deviceNo: string
+  name?: string
   model: string
   status: DeviceStatus
   lastSeenAt?: string | null
   createdAt?: string
   disabledAt?: string | null
+  reportInterval?: number
+  latest?: Reading | null
 }
 
 export interface AlarmRule {

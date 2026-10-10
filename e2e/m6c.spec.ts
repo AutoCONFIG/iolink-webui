@@ -97,18 +97,19 @@ test('device disable releases action and restore reports quota before succeeding
   let denied = true
   let deletions = 0
   let restores = 0
-  await page.route('**/admin/v1/ponds', route => route.fulfill({ json: [{ id: 1, farm_id: 1, name: '测试池塘', area_mu: 1 }] }))
-  await page.route('**/admin/v1/devices?*', route => {
-    expect(new URL(route.request().url()).searchParams.get('include_disabled')).toBe('true')
-    return route.fulfill({ json: [{ id: 1, pond_id: 1, device_no: 'test-device', model: 'water', status: 'offline', disabled_at: disabledAt, last_seen_at: null }] })
+  await page.route('**/user/v1/ponds', route => route.fulfill({ json: [{ id: 1, farm_id: 1, name: '测试池塘', area_mu: 1 }] }))
+  await page.route('**/user/v1/devices?*', route => {
+    const params = new URL(route.request().url()).searchParams
+    expect(params.get('status')).toBeTruthy()
+    return route.fulfill({ json: { list: [{ id: 1, pond_id: 1, device_no: 'test-device', model: 'water', status: 'offline', disabled_at: disabledAt, last_seen_at: null }], total: 1, page: Number(params.get('page') ?? 1), page_size: Number(params.get('page_size') ?? 20) } })
   })
-  await page.route('**/admin/v1/devices/test-device', async route => {
+  await page.route('**/user/v1/devices/test-device', async route => {
     expect(route.request().method()).toBe('DELETE')
     deletions++
     disabledAt = '2026-10-05T00:00:00Z'
     await route.fulfill({ status: 204 })
   })
-  await page.route('**/admin/v1/devices/test-device/restore', async route => {
+  await page.route('**/user/v1/devices/test-device/restore', async route => {
     restores++
     if (denied) { await route.fulfill({ status: 403, json: { error: 'device_quota_exceeded' } }); return }
     disabledAt = null
@@ -120,7 +121,7 @@ test('device disable releases action and restore reports quota before succeeding
   await row.getByRole('button', { name: '停用' }).click()
   await expect(row.getByRole('button', { name: '恢复' })).toBeVisible()
   await capture(page, info, 'device-disabled')
-  await page.getByText('全部状态', { exact: true }).click()
+  await page.getByText('全部有效设备', { exact: true }).click()
   await page.getByRole('option', { name: '已停用', exact: true }).click()
   await expect(row).toBeVisible()
   await row.getByRole('button', { name: '恢复' }).click()

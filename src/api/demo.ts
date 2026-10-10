@@ -50,6 +50,19 @@ export async function demoStats(): Promise<Stats> {
 export async function demoFarms() { await pause(); return clone(farms) }
 export async function demoPonds() { await pause(); return clone(ponds) }
 export async function demoDevices() { await pause(); return clone(devices) }
+export async function demoDevice(deviceNo: string) {
+  await pause()
+  const device = devices.find((item) => item.deviceNo === deviceNo)
+  if (!device) throw new Error('设备不存在')
+  const pond = ponds.find((item) => item.id === device.pondId)
+  return clone({ ...device, name: device.name ?? device.deviceNo, reportInterval: device.reportInterval ?? 60, latest: pond?.latest ?? null })
+}
+export async function demoMoveDevice(deviceNo: string, pondId: number) {
+  await pause()
+  const device = devices.find((item) => item.deviceNo === deviceNo)
+  if (!device) throw new Error('设备不存在')
+  device.pondId = pondId
+}
 export async function demoRules() { await pause(); return clone(rules) }
 export async function demoAlarms() { await pause(); return clone(alarms) }
 export async function demoProducts() { await pause(); return clone(products) }
@@ -73,10 +86,10 @@ export async function demoCreatePond(payload: Pick<Pond, 'farmId' | 'name' | 'ar
   return clone(pond)
 }
 
-export async function demoRegisterDevice(payload: Pick<Device, 'pondId' | 'model'>): Promise<DeviceRegistration> {
+export async function demoRegisterDevice(payload: Pick<Device, 'pondId' | 'model' | 'name' | 'reportInterval'>): Promise<DeviceRegistration> {
   await pause()
   const suffix = Math.random().toString(16).slice(2, 10)
-  const device: Device = { id: Math.max(0, ...devices.map((item) => item.id ?? 0)) + 1, deviceNo: `dev-${suffix}`, status: 'offline', lastSeenAt: null, ...payload }
+  const device: Device = { id: Math.max(0, ...devices.map((item) => item.id ?? 0)) + 1, deviceNo: `dev-${suffix}`, status: 'offline', lastSeenAt: null, reportInterval: payload.reportInterval ?? 60, ...payload }
   devices = [...devices, device]
   return { ...clone(device), secret: crypto.randomUUID().replace(/-/g, '') }
 }

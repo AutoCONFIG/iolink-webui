@@ -43,10 +43,34 @@ export async function createPond(payload: Pick<Pond, 'farmId' | 'name' | 'areaMu
   return normalizePond(data)
 }
 
-export async function getDevices(includeDisabled = false) {
-  if (demoMode) return demo.demoDevices()
-  const { data } = await userHttp.get('/devices', { params: includeDisabled ? { include_disabled: true } : undefined })
-  return data.map(normalizeDevice)
+export async function getDevicePage(params: { page?: number; pageSize?: number; search?: string; pondId?: number; status?: string }) {
+  if (demoMode) {
+    const ponds = await demo.demoPonds()
+    const rows = (await demo.demoDevices()).filter((item) => {
+      const text = (params.search ?? '').trim().toLowerCase()
+      const statusMatch = !params.status || params.status === 'active' ? !item.disabledAt : params.status === 'all' || (params.status === 'disabled' ? Boolean(item.disabledAt) : item.status === params.status && !item.disabledAt)
+      const pondMatch = params.pondId === undefined || item.pondId === params.pondId
+      const pondName = ponds.find((pond) => pond.id === item.pondId)?.name ?? ''
+      const textMatch = !text || `${item.deviceNo} ${item.name ?? ''} ${item.model} ${pondName}`.toLowerCase().includes(text)
+      return statusMatch && pondMatch && textMatch
+    })
+    const page = params.page ?? 1
+    const pageSize = params.pageSize ?? 20
+    return { items: rows.slice((page - 1) * pageSize, page * pageSize), total: rows.length, page, pageSize }
+  }
+  const { data } = await userHttp.get('/devices', { params: { page: params.page ?? 1, page_size: params.pageSize ?? 20, name: params.search || undefined, pond_id: params.pondId || undefined, status: params.status || 'active' } })
+  return { items: data.list.map(normalizeDevice), total: Number(data.total), page: Number(data.page), pageSize: Number(data.page_size) }
+}
+
+export async function getDevice(deviceNo: string): Promise<Device> {
+  if (demoMode) return normalizeDevice(await demo.demoDevice(deviceNo))
+  const { data } = await userHttp.get(`/devices/${encodeURIComponent(deviceNo)}`)
+  return normalizeDevice(data)
+}
+
+export async function moveDevice(deviceNo: string, pondId: number) {
+  if (demoMode) return demo.demoMoveDevice(deviceNo, pondId)
+  await userHttp.put(`/devices/${encodeURIComponent(deviceNo)}/pond`, { pond_id: pondId })
 }
 
 export async function restoreDevice(deviceNo: string) {
@@ -100,9 +124,9 @@ export async function revokeAPIKey(keyId: string) {
   await userHttp.post(`/api-keys/${encodeURIComponent(keyId)}/revoke`)
 }
 
-export async function registerDevice(payload: Pick<Device, 'pondId' | 'model'>) {
+export async function registerDevice(payload: Pick<Device, 'pondId' | 'model' | 'name' | 'reportInterval'>) {
   if (demoMode) return demo.demoRegisterDevice(payload)
-  const { data } = await userHttp.post('/devices', { pond_id: payload.pondId, model: payload.model })
+  const { data } = await userHttp.post('/devices', { pond_id: payload.pondId, name: payload.name || '', model: payload.model, report_interval: payload.reportInterval || 60 })
   return { ...normalizeDevice(data), secret: data.secret }
 }
 
