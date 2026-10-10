@@ -11,10 +11,11 @@ test('所有管理页面在桌面和窄屏保持可用', async ({ page }) => {
     ['/dashboard', '水域运行态势'],
     ['/ponds', '养殖场与池塘'],
     ['/devices', '设备管理'],
+    ['/products', '产品与物模型'],
     ['/alarms/rules', '报警规则'],
     ['/alarms', '报警中心'],
     ['/system', '系统设置'],
-    ['/tenants', '组织与成员'],
+    ['/tenants', '我的组织'],
   ] as const
 
   await login(page)
@@ -72,29 +73,35 @@ test('产品页可创建包含数值和枚举字段的版本并发布分配', as
   await login(page)
   await page.goto('/products')
   await expect(page.getByRole('heading', { name: '产品与物模型', level: 2 })).toBeVisible()
-  await page.getByPlaceholder('新产品名称').fill('流量演示产品')
-  await page.getByRole('button', { name: '创建' }).click()
+  await page.getByRole('button', { name: '创建产品' }).click()
+  const productDialog = page.getByRole('dialog', { name: '创建产品' })
+  await productDialog.getByPlaceholder('例如：循环水泵控制器').fill('流量演示产品')
+  await productDialog.getByRole('button', { name: '确认创建' }).click()
   await expect(page.getByRole('heading', { name: '流量演示产品' })).toBeVisible()
   await page.screenshot({ path: '../.omo/evidence/todo10-m6a-products-created.png', fullPage: true })
-  await page.getByPlaceholder('字段标识，例如 mode').fill('flow')
-  await page.getByPlaceholder('单位').fill('L/min')
-  await page.getByRole('button', { name: '加入字段' }).click()
-  await page.getByPlaceholder('字段标识，例如 mode').fill('mode')
-  await page.locator('.el-select').first().click()
+  await page.getByRole('tab', { name: '物模型' }).click()
+  await page.getByRole('button', { name: '新建模型版本' }).click()
+  const modelDialog = page.getByRole('dialog', { name: '新建模型版本' })
+  await modelDialog.getByPlaceholder('字段标识，例如 mode').fill('flow')
+  await modelDialog.getByPlaceholder('单位').fill('L/min')
+  await modelDialog.getByRole('button', { name: '加入字段' }).click()
+  await modelDialog.getByPlaceholder('字段标识，例如 mode').fill('mode')
+  await modelDialog.locator('.el-select').first().click()
   await page.getByRole('option', { name: '文本/枚举' }).click()
-  await page.getByPlaceholder('枚举值，用逗号分隔').fill('auto,manual')
-  await page.getByRole('button', { name: '加入字段' }).click()
-  await expect(page.getByText('待加入：')).toContainText('flow')
-  await expect(page.getByRole('button', { name: '新建版本' })).toBeEnabled()
-  await page.getByRole('button', { name: '新建版本' }).click()
-  await expect(page.locator('.el-table').getByText('flow')).toBeVisible()
-  await expect(page.locator('.el-table').getByText('mode')).toBeVisible()
+  await modelDialog.getByPlaceholder('枚举值，用逗号分隔').fill('auto,manual')
+  await modelDialog.getByRole('button', { name: '加入字段' }).click()
+  await expect(modelDialog.getByText('待加入：')).toContainText('flow')
+  await modelDialog.getByRole('button', { name: '创建版本' }).click()
+  await expect(page.locator('.product-model-fields').getByText('flow')).toBeVisible()
+  await expect(page.locator('.product-model-fields').getByText('mode')).toBeVisible()
   await page.screenshot({ path: '../.omo/evidence/todo10-m6a-products-model-draft.png', fullPage: true })
+  page.on('dialog', dialog => dialog.accept())
   await page.getByRole('button', { name: '发布' }).click()
   await expect(page.getByText('已发布', { exact: true })).toBeVisible()
-  await page.getByPlaceholder('设备编号').fill('demo-device')
-  await page.getByRole('button', { name: '升级到当前产品最新版本' }).click()
-  await expect(page.getByText('设备模型已升级')).toBeVisible()
+  await page.getByRole('tab', { name: '设备绑定' }).click()
+  await page.getByPlaceholder('输入设备编号').fill('demo-device')
+  await page.getByRole('button', { name: '绑定模型' }).click()
+  await expect(page.getByText(/设备已绑定模型/)).toBeVisible()
   await page.screenshot({ path: '../.omo/evidence/todo10-m6a-products-published-assigned.png', fullPage: true })
 })
 

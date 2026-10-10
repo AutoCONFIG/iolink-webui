@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { formatMetric, METRICS } from '@/domain/metrics'
 import { pondStatusMeta } from '@/domain/status'
+import { filterProducts, latestPublishedModel, modelState } from '@/domain/products'
+import type { ProductModel } from '@/types/api'
 import {
   normalizeAlarm,
   normalizeDevice,
@@ -33,6 +35,26 @@ describe('status presentation', () => {
     expect(pondStatusMeta('critical')).toEqual({ label: '严重', tone: 'danger' })
     expect(pondStatusMeta('warning')).toEqual({ label: '预警', tone: 'warning' })
     expect(pondStatusMeta('normal')).toEqual({ label: '正常', tone: 'success' })
+  })
+})
+
+describe('product resource presentation', () => {
+  const models: ProductModel[] = [
+    { id: 1, productId: 4, version: 1, fields: [], publishedAt: '2026-10-01T00:00:00Z' },
+    { id: 2, productId: 4, version: 2, fields: [], publishedAt: null },
+    { id: 3, productId: 4, version: 3, fields: [], publishedAt: '2026-10-02T00:00:00Z' },
+  ]
+
+  it('filters the resource catalog by product name or id', () => {
+    const products = [{ id: 4, tenantId: 1, name: 'water-quality' }, { id: 8, tenantId: 1, name: 'pump' }]
+    expect(filterProducts(products, 'pump')).toHaveLength(1)
+    expect(filterProducts(products, '4')[0]?.name).toBe('water-quality')
+  })
+
+  it('selects the newest published model and keeps drafts distinct', () => {
+    expect(latestPublishedModel(models)?.version).toBe(3)
+    expect(modelState(models[1]!)).toBe('draft')
+    expect(modelState(models[2]!)).toBe('published')
   })
 })
 

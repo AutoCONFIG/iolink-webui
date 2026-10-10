@@ -233,10 +233,23 @@ function normalizeField(value: unknown): ModelField {
   return { identifier: String(field.identifier), type, unit: String(field.unit ?? ''), min: typeof (field.minimum ?? field.min) === 'number' ? Number(field.minimum ?? field.min) : null, max: typeof (field.maximum ?? field.max) === 'number' ? Number(field.maximum ?? field.max) : null, enum: Array.isArray(values) ? values.filter((item): item is string => typeof item === 'string') : undefined, readable: field.readable === true, writable: field.writable === true, nullable: field.nullable === true }
 }
 
+function normalizeProductModel(value: unknown, fallbackFields: ModelField[] = []): ProductModel {
+  const item = asRecord(value)
+  const rawFields = Array.isArray(item.fields) ? item.fields : fallbackFields
+  return {
+    id: Number(item.id),
+    productId: Number(item.product_id ?? item.productId),
+    version: Number(item.version),
+    fields: rawFields.map(normalizeField),
+    publishedAt: typeof item.published_at === 'string' ? item.published_at : null,
+    createdAt: typeof item.created_at === 'string' ? item.created_at : undefined,
+  }
+}
+
 export async function getProductModels(productId: number): Promise<ProductModel[]> {
   if (demoMode) return demo.demoProductModels(productId)
   const { data } = await userHttp.get(`/products/${productId}/models`)
-  return data.map((raw: unknown) => { const item = asRecord(raw); const fields = Array.isArray(item.fields) ? item.fields.map(normalizeField) : []; return { id: Number(item.id), productId: Number(item.product_id ?? item.productId), version: Number(item.version), fields, publishedAt: typeof item.published_at === 'string' ? item.published_at : null, createdAt: typeof item.created_at === 'string' ? item.created_at : undefined } })
+  return data.map(normalizeProductModel)
 }
 
 export async function createProduct(name: string): Promise<Product> {
@@ -247,14 +260,14 @@ export async function createProduct(name: string): Promise<Product> {
 
 export async function createProductModel(productId: number, fields: ModelField[]): Promise<ProductModel> {
   if (demoMode) return demo.demoCreateProductModel(productId, fields)
-  const { data } = await userHttp.post(`/products/${productId}/models`, { fields: fields.map((field) => ({ identifier: field.identifier, type: field.type, unit: field.unit, minimum: field.min ?? null, maximum: field.max ?? null, enum_values: field.enum?.length ? field.enum : null, readable: field.readable, writable: field.writable, nullable: field.nullable })) })
-  return { id: Number(data.id), productId: Number(data.product_id), version: Number(data.version), fields: data.fields ?? fields, publishedAt: data.published_at ?? null, createdAt: data.created_at }
+  const { data } = await userHttp.post(`/products/${productId}/models`, { fields: fields.map((field) => ({ identifier: field.identifier, type: field.type, unit: field.unit, minimum: field.min ?? null, maximum: field.max ?? null, ...(field.enum?.length ? { enum_values: field.enum } : {}), readable: field.readable, writable: field.writable, nullable: field.nullable })) })
+  return normalizeProductModel(data, fields)
 }
 
 export async function publishProductModel(productId: number, version: number): Promise<ProductModel> {
   if (demoMode) return demo.demoPublishProductModel(productId, version)
   const { data } = await userHttp.post(`/products/${productId}/models/${version}/publish`)
-  return { id: Number(data.id), productId: Number(data.product_id), version: Number(data.version), fields: data.fields ?? [], publishedAt: data.published_at ?? null, createdAt: data.created_at }
+  return normalizeProductModel(data)
 }
 
 export async function assignDeviceProduct(deviceNo: string, productId: number, modelVersion: number): Promise<void> {
