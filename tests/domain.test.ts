@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { formatMetric, METRICS } from '@/domain/metrics'
 import { pondStatusMeta } from '@/domain/status'
 import { filterProducts, latestPublishedModel, modelState } from '@/domain/products'
+import { canConfirmTenantAlarms, canManageTenantResources } from '@/domain/tenantPermissions'
 import type { ProductModel } from '@/types/api'
 import {
   normalizeAlarm,
@@ -35,6 +36,25 @@ describe('status presentation', () => {
     expect(pondStatusMeta('critical')).toEqual({ label: '严重', tone: 'danger' })
     expect(pondStatusMeta('warning')).toEqual({ label: '预警', tone: 'warning' })
     expect(pondStatusMeta('normal')).toEqual({ label: '正常', tone: 'success' })
+  })
+})
+
+describe('tenant permissions', () => {
+  it('allows only owner and admin to manage tenant resources', () => {
+    expect(canManageTenantResources('owner')).toBe(true)
+    expect(canManageTenantResources('admin')).toBe(true)
+    for (const role of ['member', 'viewer', 'support', '', undefined, null]) {
+      expect(canManageTenantResources(role)).toBe(false)
+    }
+  })
+
+  it('preserves member and support alarm confirmation while denying viewers', () => {
+    for (const role of ['owner', 'admin', 'member', 'support']) {
+      expect(canConfirmTenantAlarms(role)).toBe(true)
+    }
+    for (const role of ['viewer', 'unknown', '', undefined, null]) {
+      expect(canConfirmTenantAlarms(role)).toBe(false)
+    }
   })
 })
 

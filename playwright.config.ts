@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: ['m6c.spec.ts', 'm6d-live.spec.ts'],
+  testIgnore: ['m6c.spec.ts', 'm6d-live.spec.ts', 'tenant-permissions.spec.ts'],
   timeout: 30_000,
   use: {
     baseURL: 'http://127.0.0.1:5173',

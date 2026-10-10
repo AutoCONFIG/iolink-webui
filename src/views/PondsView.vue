@@ -5,7 +5,11 @@ import { createFarm, createPond, getFarms, getPonds } from '@/api/admin'
 import type { Farm, Pond } from '@/types/api'
 import StatusBadge from '@/components/StatusBadge.vue'
 import MetricGrid from '@/components/MetricGrid.vue'
+import { useAuthStore } from '@/stores/auth'
+import { canManageTenantResources, readOnlyTenantMessage } from '@/domain/tenantPermissions'
 
+const auth = useAuthStore()
+const canManage = computed(() => canManageTenantResources(auth.tenantRole))
 const loading = ref(true)
 const saving = ref(false)
 const farms = ref<Farm[]>([])
@@ -26,6 +30,7 @@ async function load() {
 }
 
 async function saveFarm() {
+  if (!canManage.value) return ElMessage.warning(readOnlyTenantMessage)
   if (!farmForm.name.trim()) return ElMessage.warning('请输入养殖场名称')
   saving.value = true
   try { await createFarm({ name: farmForm.name.trim(), location: farmForm.location.trim() }); farmDialog.value = false; Object.assign(farmForm, { name: '', location: '' }); await load(); ElMessage.success('养殖场已创建') }
@@ -34,11 +39,13 @@ async function saveFarm() {
 }
 
 function openPond() {
+  if (!canManage.value) return ElMessage.warning(readOnlyTenantMessage)
   pondForm.farmId = selectedFarm.value ?? farms.value[0]?.id ?? 0
   pondDialog.value = true
 }
 
 async function savePond() {
+  if (!canManage.value) return ElMessage.warning(readOnlyTenantMessage)
   if (!pondForm.farmId || !pondForm.name.trim()) return ElMessage.warning('请完整填写池塘信息')
   if (pondForm.areaMu < 0) return ElMessage.warning('面积不能为负数')
   saving.value = true
@@ -52,7 +59,7 @@ onMounted(load)
 
 <template>
   <div v-loading="loading" class="page-stack">
-    <div class="page-intro"><div><h2>养殖场与池塘</h2><p>以池塘为业务主对象，集中查看面积、状态与最新水质。</p></div><div class="toolbar"><el-button @click="farmDialog = true">新增养殖场</el-button><el-button type="primary" color="#0fae9b" @click="openPond">新增池塘</el-button></div></div>
+    <div class="page-intro"><div><h2>养殖场与池塘</h2><p>以池塘为业务主对象，集中查看面积、状态与最新水质。</p><p v-if="!canManage" class="muted">{{ readOnlyTenantMessage }}</p></div><div v-if="canManage" class="toolbar"><el-button @click="farmDialog = true">新增养殖场</el-button><el-button type="primary" color="#0fae9b" @click="openPond">新增池塘</el-button></div></div>
     <section class="surface">
       <div class="surface-head"><div class="toolbar"><el-button :type="selectedFarm === null ? 'primary' : ''" @click="selectedFarm = null">全部池塘</el-button><el-button v-for="farm in farms" :key="farm.id" :type="selectedFarm === farm.id ? 'primary' : ''" @click="selectedFarm = farm.id">{{ farm.name }}</el-button></div><span style="color:#7b909e;font-size:13px">共 {{ visiblePonds.length }} 口</span></div>
       <div class="surface-body pond-grid">
@@ -65,11 +72,11 @@ onMounted(load)
       </div>
     </section>
 
-    <el-dialog v-model="farmDialog" title="新增养殖场" width="460px">
+    <el-dialog v-if="canManage" v-model="farmDialog" title="新增养殖场" width="460px">
       <el-form label-position="top"><el-form-item label="养殖场名称" required><el-input v-model="farmForm.name" placeholder="例如：东港示范养殖场" /></el-form-item><el-form-item label="所在地"><el-input v-model="farmForm.location" placeholder="省市或详细位置" /></el-form-item></el-form>
       <template #footer><el-button @click="farmDialog = false">取消</el-button><el-button type="primary" color="#0fae9b" :loading="saving" @click="saveFarm">确认创建</el-button></template>
     </el-dialog>
-    <el-dialog v-model="pondDialog" title="新增池塘" width="460px">
+    <el-dialog v-if="canManage" v-model="pondDialog" title="新增池塘" width="460px">
       <el-form label-position="top"><el-form-item label="所属养殖场" required><el-select v-model="pondForm.farmId" style="width:100%"><el-option v-for="farm in farms" :key="farm.id" :label="farm.name" :value="farm.id" /></el-select></el-form-item><el-form-item label="池塘名称" required><el-input v-model="pondForm.name" placeholder="例如：A-03 虾塘" /></el-form-item><el-form-item label="面积（亩）"><el-input-number v-model="pondForm.areaMu" :min="0" :precision="1" style="width:100%" /></el-form-item></el-form>
       <template #footer><el-button @click="pondDialog = false">取消</el-button><el-button type="primary" color="#0fae9b" :loading="saving" @click="savePond">确认创建</el-button></template>
     </el-dialog>

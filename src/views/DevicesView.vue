@@ -6,6 +6,8 @@ import { deleteDevice, getDevice, getDevicePage, getPonds, moveDevice, registerD
 import type { Device, DeviceRegistration, MetricKey, Pond } from '@/types/api'
 import MetricGrid from '@/components/MetricGrid.vue'
 import { METRICS } from '@/domain/metrics'
+import { useAuthStore } from '@/stores/auth'
+import { canManageTenantResources, readOnlyTenantMessage } from '@/domain/tenantPermissions'
 
 type ViewMode = 'list' | 'card'
 const loading = ref(true)
@@ -30,6 +32,8 @@ const form = reactive({ pondId: 0, name: '', model: '', reportInterval: 60 })
 const moving = ref(false)
 const detailTab = ref('overview')
 const router = useRouter()
+const auth = useAuthStore()
+const canManage = computed(() => canManageTenantResources(auth.tenantRole))
 
 const pondName = (id: number) => ponds.value.find((item) => item.id === id)?.name ?? `池塘 #${id}`
 const formatDate = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN') : '--'
@@ -69,8 +73,12 @@ async function openDetails(device: Device) {
 }
 function openProductModels() { void router.push('/products') }
 async function retryDetails() { if (selectedDevice.value) await openDetails(selectedDevice.value) }
-function openRegister() { Object.assign(form, { pondId: ponds.value[0]?.id ?? 0, name: '', model: '', reportInterval: 60 }); registerDialog.value = true }
+function openRegister() {
+  if (!canManage.value) return ElMessage.warning(readOnlyTenantMessage)
+  Object.assign(form, { pondId: ponds.value[0]?.id ?? 0, name: '', model: '', reportInterval: 60 }); registerDialog.value = true
+}
 async function saveDevice() {
+  if (!canManage.value) return ElMessage.warning(readOnlyTenantMessage)
   if (!form.pondId) return ElMessage.warning('请选择池塘')
   saving.value = true
   try { registration.value = await registerDevice({ pondId: form.pondId, name: form.name.trim(), model: form.model.trim(), reportInterval: form.reportInterval }); registerDialog.value = false; secretDialog.value = true; await load() }
@@ -78,9 +86,17 @@ async function saveDevice() {
   finally { saving.value = false }
 }
 async function copySecret() { if (registration.value?.secret) { await navigator.clipboard.writeText(registration.value.secret); ElMessage.success('Secret 已复制') } }
-async function restore(no: string) { try { await restoreDevice(no); ElMessage.success('设备已恢复'); await load() } catch (error) { ElMessage.error(error instanceof Error ? error.message : '恢复失败') } }
-async function disable(no: string) { if (!window.confirm('停用后设备将断开接入并释放授权额度，确认继续吗？')) return; try { await deleteDevice(no); ElMessage.success('设备已停用'); await load() } catch (error) { ElMessage.error(error instanceof Error ? error.message : '停用失败') } }
+async function restore(no: string) {
+  if (!canManage.value) return ElMessage.warning(readOnlyTenantMessage)
+  try { await restoreDevice(no); ElMessage.success('设备已恢复'); await load() } catch (error) { ElMessage.error(error instanceof Error ? error.message : '恢复失败') }
+}
+async function disable(no: string) {
+  if (!canManage.value) return ElMessage.warning(readOnlyTenantMessage)
+  if (!window.confirm('停用后设备将断开接入并释放授权额度，确认继续吗？')) return
+  try { await deleteDevice(no); ElMessage.success('设备已停用'); await load() } catch (error) { ElMessage.error(error instanceof Error ? error.message : '停用失败') }
+}
 async function moveSelected() {
+  if (!canManage.value) return ElMessage.warning(readOnlyTenantMessage)
   if (!selectedDevice.value || !form.pondId || form.pondId === selectedDevice.value.pondId) return ElMessage.warning('请选择其他池塘')
 	if (!window.confirm('调塘后设备归属将立即切换，历史遥测与报警仍按原池塘保留。确认继续吗？')) return
   moving.value = true
@@ -93,7 +109,7 @@ onMounted(load)
 
 <template>
   <div v-loading="loading" class="page-stack">
-    <div class="page-intro"><div><h2>设备管理</h2><p>按池塘和连接状态筛选终端，点击设备编号查看连接与最新遥测。</p></div><el-button type="primary" color="var(--teal)" @click="openRegister">注册设备</el-button></div>
+    <div class="page-intro"><div><h2>设备管理</h2><p>按池塘和连接状态筛选终端，点击设备编号查看连接与最新遥测。</p><p v-if="!canManage" class="muted">{{ readOnlyTenantMessage }}</p></div><el-button v-if="canManage" type="primary" color="var(--teal)" @click="openRegister">注册设备</el-button></div>
     <section class="surface device-summary"><div><strong>{{ visibleDevices.length }}</strong><span>当前结果</span></div><div class="is-online"><strong>{{ onlineCount }}</strong><span>在线</span></div><div class="is-offline"><strong>{{ offlineCount }}</strong><span>离线</span></div><div class="is-disabled"><strong>{{ disabledCount }}</strong><span>已停用</span></div></section>
     <section class="surface">
       <div class="surface-head device-toolbar"><div class="toolbar"><el-input v-model="query" clearable placeholder="搜索设备编号、型号或池塘" style="width:260px" @keyup.enter="searchDevices" @clear="searchDevices" /><el-select v-model="pondId" clearable placeholder="全部池塘" style="width:160px" @change="searchDevices"><el-option v-for="pond in ponds" :key="pond.id" :label="pond.name" :value="pond.id" /></el-select><el-select v-model="status" clearable placeholder="全部有效设备" style="width:140px" @change="searchDevices"><el-option label="全部有效设备" value="active" /><el-option label="在线" value="online" /><el-option label="离线" value="offline" /><el-option label="全部设备" value="all" /><el-option label="已停用" value="disabled" /></el-select></div><el-radio-group v-model="viewMode" size="small" aria-label="设备视图"><el-radio-button value="list">列表</el-radio-button><el-radio-button value="card">卡片</el-radio-button></el-radio-group></div>
@@ -115,15 +131,15 @@ onMounted(load)
               <section class="detail-section"><h3>最新遥测</h3><el-alert v-if="staleMetrics.length" title="部分遥测已过期" :description="`超过 ${selectedDevice.reportInterval ? selectedDevice.reportInterval * 3 : 0} 秒未更新：${staleMetrics.join('、')}`" type="warning" :closable="false" /><MetricGrid :reading="selectedDevice.latest" :stale-keys="new Set(staleMetricKeys)" :report-interval="selectedDevice.reportInterval" /><p class="detail-muted">{{ selectedDevice.latest?.ts ? `采集于 ${formatDate(selectedDevice.latest.ts)}` : '设备尚未上报数据' }}</p></section>
             </el-tab-pane>
             <el-tab-pane label="配置" name="configuration">
-              <section class="detail-section"><h3>设备归属</h3><el-select v-model="form.pondId" style="width:100%"><el-option v-for="pond in ponds" :key="pond.id" :label="pond.name" :value="pond.id" /></el-select><el-button class="detail-action" type="primary" color="var(--teal)" :loading="moving" @click="moveSelected">调至所选池塘</el-button></section>
+              <section class="detail-section"><h3>设备归属</h3><template v-if="canManage"><el-select v-model="form.pondId" style="width:100%"><el-option v-for="pond in ponds" :key="pond.id" :label="pond.name" :value="pond.id" /></el-select><el-button class="detail-action" type="primary" color="var(--teal)" :loading="moving" @click="moveSelected">调至所选池塘</el-button></template><p v-else class="detail-muted">{{ pondName(selectedDevice.pondId) }}。{{ readOnlyTenantMessage }}</p></section>
               <section class="detail-section"><h3>物模型与配置</h3><p class="detail-muted">设备型号 {{ selectedDevice.model || '--' }}；模型版本在产品与物模型页面维护。</p><el-button class="detail-action" @click="openProductModels">打开产品与物模型</el-button></section>
-              <section class="detail-section"><h3>生命周期</h3><el-button v-if="selectedDevice.disabledAt" type="primary" @click="restore(selectedDevice.deviceNo)">恢复设备</el-button><el-button v-else type="danger" plain @click="disable(selectedDevice.deviceNo)">停用设备</el-button></section>
+              <section class="detail-section"><h3>生命周期</h3><template v-if="canManage"><el-button v-if="selectedDevice.disabledAt" type="primary" @click="restore(selectedDevice.deviceNo)">恢复设备</el-button><el-button v-else type="danger" plain @click="disable(selectedDevice.deviceNo)">停用设备</el-button></template><p v-else class="detail-muted">{{ readOnlyTenantMessage }}</p></section>
             </el-tab-pane>
           </el-tabs>
         </template>
       </div>
     </el-drawer>
-    <el-dialog v-model="registerDialog" title="注册监测设备" width="460px"><el-form label-position="top"><el-form-item label="绑定池塘" required><el-select v-model="form.pondId" style="width:100%"><el-option v-for="pond in ponds" :key="pond.id" :label="pond.name" :value="pond.id" /></el-select></el-form-item><el-form-item label="设备名称"><el-input v-model="form.name" placeholder="例如：A-01 水质探头" /></el-form-item><el-form-item label="设备型号"><el-input v-model="form.model" placeholder="例如：AquaSense S5" /></el-form-item><el-form-item label="上报周期"><el-radio-group v-model="form.reportInterval"><el-radio-button :value="60">60 秒</el-radio-button><el-radio-button :value="300">300 秒</el-radio-button></el-radio-group></el-form-item></el-form><template #footer><el-button @click="registerDialog = false">取消</el-button><el-button type="primary" color="var(--teal)" :loading="saving" @click="saveDevice">生成接入凭据</el-button></template></el-dialog>
+    <el-dialog v-if="canManage" v-model="registerDialog" title="注册监测设备" width="460px"><el-form label-position="top"><el-form-item label="绑定池塘" required><el-select v-model="form.pondId" style="width:100%"><el-option v-for="pond in ponds" :key="pond.id" :label="pond.name" :value="pond.id" /></el-select></el-form-item><el-form-item label="设备名称"><el-input v-model="form.name" placeholder="例如：A-01 水质探头" /></el-form-item><el-form-item label="设备型号"><el-input v-model="form.model" placeholder="例如：AquaSense S5" /></el-form-item><el-form-item label="上报周期"><el-radio-group v-model="form.reportInterval"><el-radio-button :value="60">60 秒</el-radio-button><el-radio-button :value="300">300 秒</el-radio-button></el-radio-group></el-form-item></el-form><template #footer><el-button @click="registerDialog = false">取消</el-button><el-button type="primary" color="var(--teal)" :loading="saving" @click="saveDevice">生成接入凭据</el-button></template></el-dialog>
     <el-dialog v-model="secretDialog" title="保存设备 Secret" width="min(520px, calc(100vw - 32px))" :close-on-click-modal="false" :close-on-press-escape="false" :show-close="false" @closed="registration = null"><el-alert title="Secret 仅显示这一次。关闭窗口后无法找回，请立即复制并安全交给设备配置人员。" type="warning" :closable="false" show-icon /><p class="secret-meta">设备编号：<strong>{{ registration?.deviceNo }}</strong></p><div class="secret-box">{{ registration?.secret }}</div><template #footer><el-button type="primary" color="var(--teal)" @click="copySecret">复制 Secret</el-button><el-button @click="secretDialog = false">我已保存，关闭</el-button></template></el-dialog>
   </div>
 </template>
