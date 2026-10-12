@@ -127,7 +127,7 @@ export async function revokeAPIKey(keyId: string) {
 export async function registerDevice(payload: Pick<Device, 'pondId' | 'model' | 'name' | 'reportInterval'>) {
   if (demoMode) return demo.demoRegisterDevice(payload)
   const { data } = await userHttp.post('/devices', { pond_id: payload.pondId, name: payload.name || '', model: payload.model, report_interval: payload.reportInterval || 60 })
-  return { ...normalizeDevice(data), secret: data.secret }
+  return { ...normalizeDevice(data), clientId: data.client_id, secret: data.secret }
 }
 
 export async function getRules() {

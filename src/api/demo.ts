@@ -89,9 +89,9 @@ export async function demoCreatePond(payload: Pick<Pond, 'farmId' | 'name' | 'ar
 export async function demoRegisterDevice(payload: Pick<Device, 'pondId' | 'model' | 'name' | 'reportInterval'>): Promise<DeviceRegistration> {
   await pause()
   const suffix = Math.random().toString(16).slice(2, 10)
-  const device: Device = { id: Math.max(0, ...devices.map((item) => item.id ?? 0)) + 1, deviceNo: `dev-${suffix}`, status: 'offline', lastSeenAt: null, reportInterval: payload.reportInterval ?? 60, ...payload }
+  const device: Device = { id: Math.max(0, ...devices.map((item) => item.id ?? 0)) + 1, deviceNo: `dev-${suffix}`, mqttUsername: `iolink-dev-${suffix}-${suffix.slice(0, 6)}`, status: 'offline', lastSeenAt: null, reportInterval: payload.reportInterval ?? 60, ...payload }
   devices = [...devices, device]
-  return { ...clone(device), secret: crypto.randomUUID().replace(/-/g, '') }
+  return { ...clone(device), clientId: `mqtt_${Math.floor(Math.random() * 1e8)}-${Math.floor(Math.random() * 1e3)}`, secret: crypto.randomUUID().replace(/-/g, '') }
 }
 
 export async function demoCreateRule(payload: Omit<AlarmRule, 'id' | 'enabled'>): Promise<AlarmRule> {

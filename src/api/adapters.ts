@@ -51,6 +51,7 @@ export function normalizeDevice(raw: Raw): Device {
     id: asNumber(pick(raw, 'id', 'ID')),
     pondId: asNumber(pick(raw, 'pond_id', 'PondID')),
     deviceNo: asString(pick(raw, 'device_no', 'DeviceNo')),
+    mqttUsername: asString(pick(raw, 'mqtt_username', 'MqttUsername')) || undefined,
     name: asString(pick(raw, 'name', 'Name')) || undefined,
     model: asString(pick(raw, 'model', 'Model')),
     status: asString(pick(raw, 'status', 'Status'), 'offline') as Device['status'],
