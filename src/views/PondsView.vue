@@ -59,14 +59,14 @@ onMounted(load)
 
 <template>
   <div v-loading="loading" class="page-stack">
-    <div class="page-intro"><div><h2>养殖场与池塘</h2><p>以池塘为业务主对象，集中查看面积、状态与最新水质。</p><p v-if="!canManage" class="muted">{{ readOnlyTenantMessage }}</p></div><div v-if="canManage" class="toolbar"><el-button @click="farmDialog = true">新增养殖场</el-button><el-button type="primary" color="#0fae9b" @click="openPond">新增池塘</el-button></div></div>
+    <div class="page-intro"><div><h2>养殖场与池塘</h2><p>以池塘为业务主对象，集中查看面积、状态与最新水质。</p><p v-if="!canManage" class="muted">{{ readOnlyTenantMessage }}</p></div><div v-if="canManage" class="toolbar"><el-button @click="farmDialog = true">新增养殖场</el-button><el-button type="primary" color="var(--color-primary)" @click="openPond">新增池塘</el-button></div></div>
     <section class="surface">
-      <div class="surface-head"><div class="toolbar"><el-button :type="selectedFarm === null ? 'primary' : ''" @click="selectedFarm = null">全部池塘</el-button><el-button v-for="farm in farms" :key="farm.id" :type="selectedFarm === farm.id ? 'primary' : ''" @click="selectedFarm = farm.id">{{ farm.name }}</el-button></div><span style="color:#7b909e;font-size:13px">共 {{ visiblePonds.length }} 口</span></div>
+      <div class="surface-head"><div class="toolbar"><el-button :type="selectedFarm === null ? 'primary' : ''" @click="selectedFarm = null">全部池塘</el-button><el-button v-for="farm in farms" :key="farm.id" :type="selectedFarm === farm.id ? 'primary' : ''" @click="selectedFarm = farm.id">{{ farm.name }}</el-button></div><span style="color:var(--color-text-muted);font-size:13px">共 {{ visiblePonds.length }} 口</span></div>
       <div class="surface-body pond-grid">
         <div v-for="pond in visiblePonds" :key="pond.id" class="pond-card">
           <div class="pond-card-top"><div><h4>{{ pond.name }}</h4><small>{{ farmName(pond.farmId) }} · {{ pond.areaMu }} 亩</small></div><StatusBadge :status="pond.status" /></div>
           <MetricGrid :reading="pond.latest" />
-          <div style="margin-top:14px;padding-top:12px;border-top:1px solid #edf2f4;color:#8a9ba7;font-size:11px">最近数据：{{ pond.latest?.ts ? new Date(pond.latest.ts).toLocaleString('zh-CN') : '暂无上报' }}</div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--color-border-soft);color:var(--color-text-muted);font-size:11px">最近数据：{{ pond.latest?.ts ? new Date(pond.latest.ts).toLocaleString('zh-CN') : '暂无上报' }}</div>
         </div>
         <el-empty v-if="!visiblePonds.length" description="该养殖场还没有池塘" />
       </div>
@@ -74,11 +74,11 @@ onMounted(load)
 
     <el-dialog v-if="canManage" v-model="farmDialog" title="新增养殖场" width="460px">
       <el-form label-position="top"><el-form-item label="养殖场名称" required><el-input v-model="farmForm.name" placeholder="例如：东港示范养殖场" /></el-form-item><el-form-item label="所在地"><el-input v-model="farmForm.location" placeholder="省市或详细位置" /></el-form-item></el-form>
-      <template #footer><el-button @click="farmDialog = false">取消</el-button><el-button type="primary" color="#0fae9b" :loading="saving" @click="saveFarm">确认创建</el-button></template>
+      <template #footer><el-button @click="farmDialog = false">取消</el-button><el-button type="primary" color="var(--color-primary)" :loading="saving" @click="saveFarm">确认创建</el-button></template>
     </el-dialog>
     <el-dialog v-if="canManage" v-model="pondDialog" title="新增池塘" width="460px">
       <el-form label-position="top"><el-form-item label="所属养殖场" required><el-select v-model="pondForm.farmId" style="width:100%"><el-option v-for="farm in farms" :key="farm.id" :label="farm.name" :value="farm.id" /></el-select></el-form-item><el-form-item label="池塘名称" required><el-input v-model="pondForm.name" placeholder="例如：A-03 虾塘" /></el-form-item><el-form-item label="面积（亩）"><el-input-number v-model="pondForm.areaMu" :min="0" :precision="1" style="width:100%" /></el-form-item></el-form>
-      <template #footer><el-button @click="pondDialog = false">取消</el-button><el-button type="primary" color="#0fae9b" :loading="saving" @click="savePond">确认创建</el-button></template>
+      <template #footer><el-button @click="pondDialog = false">取消</el-button><el-button type="primary" color="var(--color-primary)" :loading="saving" @click="savePond">确认创建</el-button></template>
     </el-dialog>
   </div>
 </template>

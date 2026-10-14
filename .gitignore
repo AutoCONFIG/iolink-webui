@@ -6,3 +6,6 @@ playwright-report/
 *.tsbuildinfo
 .env.local
 .DS_Store
+# 截图与本地开发日志（不进入 PR）
+shots*/
+dev-server*.log

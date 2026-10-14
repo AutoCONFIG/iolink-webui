@@ -122,7 +122,7 @@ async function toggleTenant() {
 
 <style scoped>
 .product-row { display: flex; align-items: center; width: 100%; justify-content: space-between; border: 0; border-radius: 10px; background: transparent; color: var(--ink); cursor: pointer; padding: 12px; text-align: left; }
-.product-row:hover, .product-row.selected { background: var(--teal-soft); }
+.product-row:hover, .product-row.selected { background: var(--primary-soft); }
 .product-row span { display: grid; gap: 4px; }
 .product-row small { color: var(--muted); }
 </style>

@@ -46,12 +46,14 @@ describe('console identity and dashboard separation', () => {
     const auth = useAuthStore()
     auth.platformAdmin = platform
     const Dashboard = (await import('../src/views/DashboardView.vue')).default
+    const { countUp } = await import('../src/directives/countUp')
     const app = createSSRApp(Dashboard)
     app.directive('loading', { getSSRProps: () => ({}) })
+    app.directive('countUp', countUp)
     const html = await renderToString(app)
     expect(html.includes('平台运行态势')).toBe(platform)
     expect(html.includes('池塘状态墙')).toBe(!platform)
     expect(html.includes('最新报警')).toBe(!platform)
     expect(html.includes('注册用户')).toBe(platform)
-  })
+  }, 15000) // 整棵组件树 SSR（含大量未注册组件告警），渲染接近 5s，给足超时避免并行抖动
 })
