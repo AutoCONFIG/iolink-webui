@@ -35,7 +35,7 @@ async function submit() {
       <div class="brand"><div class="brand-mark"><span /><span /><span /></div><div><strong>IoLink</strong><small>智慧水产管理平台</small></div></div>
       <div class="login-radar"><div class="radar-wave" /></div>
       <div class="login-copy">
-        <span style="color:#55dfcf;font-size:13px;letter-spacing:2px">AQUACULTURE INTELLIGENCE</span>
+        <span style="color:#65e0d1;font-size:13px;letter-spacing:2px">AQUACULTURE INTELLIGENCE</span>
         <h1>让每一口池塘<br>都清晰可见</h1>
         <p>统一监测水质、设备在线状态与阈值报警，让异常更早被发现，让现场处置更有依据。</p>
       </div>
@@ -46,7 +46,7 @@ async function submit() {
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top" size="large" @keyup.enter="submit">
           <el-form-item label="账号" prop="username"><el-input v-model="form.username" autocomplete="username" placeholder="请输入用户名" /></el-form-item>
           <el-form-item label="登录密码" prop="password"><el-input v-model="form.password" type="password" show-password autocomplete="current-password" placeholder="请输入密码" /></el-form-item>
-          <el-button type="primary" color="#0fae9b" :loading="loading" style="width:100%;margin-top:8px" @click="submit">进入控制台</el-button>
+          <el-button type="primary" :loading="loading" style="width:100%;margin-top:8px" @click="submit">进入控制台</el-button>
         </el-form>
         <router-link v-if="!demoMode" to="/register">注册业务账号</router-link>
         <div v-if="demoMode" class="login-demo">演示账号已填入：admin / admin123。切换真实接口请设置 <code>VITE_DEMO_MODE=false</code>。</div>
