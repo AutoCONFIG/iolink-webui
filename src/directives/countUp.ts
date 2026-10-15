@@ -21,15 +21,15 @@ function prefersReducedMotion(): boolean {
 
 function render(el: CountUpEl, target: number): void {
   const value = Number.isFinite(target) ? target : 0
+  if (el._raf !== undefined) cancelAnimationFrame(el._raf)
+  el._raf = undefined
   if (prefersReducedMotion()) {
-    if (el._raf) cancelAnimationFrame(el._raf)
     el.textContent = String(Math.round(value))
     el._current = value
     return
   }
   const from = el._current ?? 0
   if (from === value) { el.textContent = String(Math.round(value)); return }
-  if (el._raf) cancelAnimationFrame(el._raf)
   const start = performance.now()
   const tick = (now: number) => {
     const p = Math.min(1, (now - start) / DURATION)
