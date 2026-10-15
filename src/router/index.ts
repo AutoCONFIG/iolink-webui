@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getSetupStatus } from '@/api/setup'
 import { demoMode } from '@/api/admin'
@@ -26,7 +26,12 @@ const routes = [
   { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
 ]
 
-export const router = createRouter({ history: createWebHistory('/'), routes })
+// 离线成品（VITE_OFFLINE=true）使用 hash 路由，可直接以 file:// 双击打开；正常部署用 history。
+const offline = import.meta.env.VITE_OFFLINE === 'true'
+export const router = createRouter({
+  history: offline ? createWebHashHistory() : createWebHistory('/'),
+  routes,
+})
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()

@@ -5,6 +5,7 @@ import { Bell, DataAnalysis, MapLocation, Monitor, Operation, Setting, Fold, Exp
 import { useAuthStore } from '@/stores/auth'
 import { demoMode } from '@/api/admin'
 import VersionLabel from '@/components/VersionLabel.vue'
+import LiquidGlass from '@/components/LiquidGlass.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,9 +52,16 @@ function logout() {
         </div>
         <div class="topbar-actions">
           <el-tag v-if="demoMode" effect="dark" color="#0e9f8f">演示数据</el-tag>
-          <span class="time-chip">{{ auth.platformAdmin ? '平台管理' : '业务管理' }}</span>
+          <LiquidGlass
+            :interactive="false"
+            :displacement-scale="42"
+            :saturation="150"
+            :corner-radius="999"
+            padding="7px 16px"
+            class="time-chip"
+          >{{ auth.platformAdmin ? '平台管理' : '业务管理' }}</LiquidGlass>
           <el-dropdown @command="logout">
-            <button class="profile-button"><span class="avatar">{{ auth.platformAdmin ? '管' : '用' }}</span><span>{{ auth.platformAdmin ? '平台管理员' : '业务用户' }}</span><span>⌄</span></button>
+            <button class="profile-button"><span class="avatar">{{ auth.platformAdmin ? '管' : '用' }}</span><span>{{ auth.platformAdmin ? '平台管理员' : '业务用户' }}</span></button>
             <template #dropdown><el-dropdown-menu><el-dropdown-item command="logout">退出登录</el-dropdown-item></el-dropdown-menu></template>
           </el-dropdown>
         </div>

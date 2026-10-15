@@ -1,9 +1,13 @@
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
+import { viteSingleFile } from 'vite-plugin-singlefile'
 
-export default defineConfig({
-  plugins: [vue()],
+export default defineConfig(({ mode }) => {
+  const offline = process.env.VITE_OFFLINE === 'true'
+  return {
+  base: offline ? './' : '/',
+  plugins: [vue(), offline ? viteSingleFile() : false].filter(Boolean),
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   server: {
     port: 5173,
@@ -23,4 +27,5 @@ export default defineConfig({
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
     },
   },
+  }
 })

@@ -35,7 +35,7 @@ async function submit() {
       <div class="brand"><div class="brand-mark"><span /><span /><span /></div><div><strong>IoLink</strong><small>智慧水产管理平台</small></div></div>
       <div class="login-radar"><div class="radar-wave" /></div>
       <div class="login-copy">
-        <span style="color:#65e0d1;font-size:13px;letter-spacing:2px">AQUACULTURE INTELLIGENCE</span>
+        <span style="color:var(--color-primary-strong);font-size:13px;letter-spacing:2px;font-weight:600">AQUACULTURE INTELLIGENCE</span>
         <h1>让每一口池塘<br>都清晰可见</h1>
         <p>统一监测水质、设备在线状态与阈值报警，让异常更早被发现，让现场处置更有依据。</p>
       </div>
