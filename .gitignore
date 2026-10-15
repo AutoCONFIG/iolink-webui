@@ -1,11 +1,23 @@
+# 依赖与构建产物
 node_modules/
 dist/
 coverage/
 test-results/
 playwright-report/
 *.tsbuildinfo
+
+# 环境变量（仅 .env.example 入库）
 .env.local
+.env.*.local
+
+# 编辑器 / 系统
 .DS_Store
+
 # 截图与本地开发日志（不进入 PR）
 shots*/
 dev-server*.log
+dev-run*.log
+
+# 本地参考资料与 AI 助手工作目录（不入库）
+.reference/
+.workbuddy/

@@ -13,33 +13,60 @@
 
 ## 视觉令牌
 
+> 当前实现为**浅色（Light）液态玻璃**主题：白色基调 + Apple Liquid Glass 玻璃质感。
+> 令牌集中在 `src/styles/main.css` 的 `:root`，Element Plus 覆盖使用 `html:root`。
+
 ### 颜色
 
 | 令牌 | 值 | 用途 |
 | --- | --- | --- |
-| `--navy` | `#071a2c` | 深色侧栏和敏感信息面板 |
-| `--navy-2` | `#0b2942` | 侧栏渐变起点 |
-| `--teal` | `#0fae9b` | 主操作、在线状态、焦点强调 |
-| `--teal-soft` | `#dff8f3` | 成功状态背景 |
-| `--line` | `#dbe6ec` | 边框和分隔线 |
-| `--muted` | `#6c8192` | 辅助说明和次要信息 |
-| `--danger` | `#e85f5f` | 严重报警和破坏性反馈 |
-| `--warning` | `#e7a83a` | 预警和需要关注的状态 |
-| `--ink` | `#183047` | 资源卡片和详情正文 |
-| `--link` | `#0d6f84` | 资源名称链接 |
-| `--line-soft` | `#edf2f4` | 卡片内部弱分隔线 |
-| `--surface-tint` | `#fafdfe` | 资源卡片浅色渐变终点 |
-| `--surface` | `#fff` | 资源卡片和详情 surface |
-| 页面背景 | `#f2f7fa` | 工作区底色 |
-| 主文字 | `#183047` | 正文、表格和标题 |
+| `--color-bg` | `#eef4fb` | 工作区底色（叠加蓝/紫/品红/青柔和光斑） |
+| `--color-sidebar` | `#f6f9fd` | 玻璃侧栏底色 |
+| `--color-surface` | `#ffffff` | 卡片与详情 surface |
+| `--color-surface-elevated` | `#fbfdff` | 次级 surface |
+| `--color-surface-hover` | `#f0f5fb` | hover 底 |
+| `--color-text` | `#10263c` | 正文、表格和标题 |
+| `--color-text-secondary` | `#47596f` | 次要正文 |
+| `--color-text-muted` | `#748aa1` | 辅助说明 |
+| `--color-primary` | `#1a8ad4` | 主操作、焦点强调 |
+| `--color-primary-strong` | `#0d6aad` | 链接与激活文字（浅色底加深） |
+| `--color-accent` | `#0f9d8a` | 在线 / 成功 / 品牌点缀 |
+| `--color-success` | `#0f9d6b` | 正常、在线 |
+| `--color-warning` | `#c98a12` | 预警 |
+| `--color-danger` | `#dc4b45` | 严重报警与破坏性反馈 |
+| `--glass-border` | `rgba(16, 44, 72, 0.09)` | 玻璃轮廓细线 |
+| `--glass-highlight` | `rgba(255, 255, 255, 0.95)` | 顶部镜面内高光 |
+| `--lg-tint` | 白色半透明渐变（0.9 → 0.66） | 玻璃底色，保证可读性 |
+| 页面背景 | 浅白 mesh 渐变 + 彩色光斑 | 工作区底色 |
 
-状态色必须同时通过文字或标签表达，不依赖颜色单独传达信息。深色表面上的正文与交互文本保持可读对比度；Element Plus 的 `type` 标签用于表格状态。
+状态色必须同时通过文字或标签表达，不依赖颜色单独传达信息。浅色表面上的正文与交互文本保持可读对比度；Element Plus 的 `type` 标签用于表格状态。
+
+### Liquid Glass 玻璃机制
+
+- **统一表面**：`.surface` / `.sidebar` / `.topbar` / `.glass-panel` / `.info-panel` / `.login-card` / `.setup-card` / `.el-dialog` / `.el-drawer` 共用同一套机制——`::before` 承载 `--lg-tint` 底色 + `backdrop-filter: blur() saturate()`，`::after` 承载 1.5px 白色镜面描边。
+- **浅色下关闭 SVG 位移折射**：`rdev/liquid-glass-react` 的 `feDisplacementMap` 在深色背景上表现良好，但浅色高亮白玻璃的边界位移会在高对比边缘产生明显的红/黄色差描边。因此浅色主题设置 `--lg-filter: none`，改由「背景模糊 + 高饱和透色 + 镜面描边 + 柔和阴影」呈现玻璃质感；滤镜定义仍保留在 `src/glass/` 中，切回深色时可重新启用。
+- **可读性优先**：玻璃底色为高不透明白色（≈0.8），背景彩色光斑以高饱和（`saturate(1.75~1.85)`）透过玻璃形成柔和透色，正文始终保持深色高对比。
+- **交互式玻璃**：`LiquidGlass.vue` 保留鼠标跟随边缘高光、靠近弹性拉伸/磁吸、按压缩放等官方交互，仅关闭其位移折射。
+- 不支持 `backdrop-filter` 时回退为不透明浅色 `--glass-solid: #f4f8fc`。
+
+### Liquid Glass 按键（Apple 胶囊按键）
+
+按键统一为 **Apple Liquid Glass 胶囊按键**：全圆角 + 半透明玻璃底 + 发光镜面环 + 折射色散。
+
+- **层叠结构**（元素 `isolation: isolate` 建立层叠上下文，两个伪元素置于背景之上、文字之下，`z-index: -1`）：
+  `元素背景 → ::before 光泽/色散 → ::after 镜面描边 → 文字`
+- **`::before`**：顶部白色光泽 + 左下冷色（青）/ 右上暖色（粉）的「折射色散」光晕，hover 时增强 opacity；配色由 `--btn-sheen` / `--btn-cool` / `--btn-warm` / `--btn-disp` 按变体覆盖。
+- **`::after`**：多层 `inset` 阴影画出「中心通透、四周发光」的镜面环，形成玻璃厚度感。
+- **三套底色**：中性白玻璃（未指定 `type` 的按钮，EP 在 type 为空时**不会**输出 `el-button--default` 类，故用 `:not(:is(.el-button--primary, .el-button--danger))` 选中）、品牌色玻璃（蓝→青渐变）、危险色玻璃（红）。`success/warning/info` 沿用中性白玻璃，只替换文字色。
+- **禁用态**：改为可读的实体灰蓝底 + 去光泽，不使用整体 `opacity`（避免文字看不清）。
+- **约束**：`::before` 必须加 `:not(.is-loading)`——Element Plus 在 `.el-button.is-loading:before` 上放置 loading 蒙层；各变体规则必须加 `:not(.is-disabled)`，否则会盖掉 EP 的禁用态。
+- `.icon-button` / `.profile-button` / `.el-radio-button__inner` 使用同一套玻璃语言；输入类控件圆角统一 10px 以与胶囊按键协调。
 
 ### 字体、间距和形状
 
 - 字体栈：`Inter`, `PingFang SC`, `Microsoft YaHei`, `system-ui`, sans-serif；等宽 Secret 使用系统等宽字体。
-- 页面间距以 4px 为基础，设备资源页使用 `--space-2/3/4` 令牌；工作区 surface 圆角 16px，表格内卡片使用 `--radius-card`，按钮和输入控件由 Element Plus 提供一致的圆角。
-- Surface 使用白色背景、浅边框和低强度阴影；阴影只用于建立层级，不承担状态表达。
+- 页面间距以 4px 为基础，设备资源页使用 `--space-2/3/4` 令牌；工作区 surface 圆角 16px，表格内卡片使用 `--radius-card`；按钮为 999px 胶囊，输入类控件 10px。
+- Surface 与按键均使用白色半透明玻璃、白色镜面描边和低强度冷色阴影；阴影只用于建立层级，不承担状态表达。
 
 ## 组件和页面规则
 
@@ -48,8 +75,10 @@
 - **KPI**：四列宽屏、两列中屏、单列窄屏；数值配合标签和辅助说明，不单独表达状态。
 - **Surface / table**：表格置于白色 surface，表头和工具栏分隔；数据为空时显示明确的空状态文案。
 - **Form / dialog**：表单标签置顶，提交按钮显示 loading；创建、注册和 Secret 展示使用 dialog，设备 Secret 关闭前不可误触退出。
+- **Button**：所有实心按键为 Apple Liquid Glass 胶囊按键（玻璃底 + 发光镜面环 + 折射色散），hover 轻微上浮、按压缩放；`link` / `text` 按钮保持无框文本样式，禁用态使用可读的实体灰蓝底。详见「Liquid Glass 按键」。
 - **Status badge**：池塘状态和设备/报警状态同时显示文字与色点或 Element Plus 标签。
 - **Loading / error**：页面请求期间使用 `v-loading` 遮罩；请求失败通过错误消息反馈并保留当前页面结构，用户可通过刷新重试。空集合显示明确的空状态。
+- **动画与层叠约束（重要）**：**不要给包含 `el-dialog` / `el-drawer` 的容器加 `transform` 动画**。带 `transform` 的元素（即使动画结束后只剩 identity 矩阵 `matrix(1,0,0,1,0,0)`）会成为 `position: fixed` 后代的 containing block；Element Plus 的对话框遮罩就挂在该容器下，会导致遮罩与弹窗相对容器（而非视口）定位，弹窗被裁切。因此页面容器 `.page-stack` 的入场动画只使用 `opacity`，且 `animation-fill-mode` 不使用 `both` / `forwards`。
 - **License**：授权页独立显示加载与导入进度；403 显示平台权限提示并隐藏导入；其他失败保留上一份授权并提供重试。详情使用双列定义列表，摘要允许折行；未导入时明确显示空状态，所有时间为空时显示 `--`。
 - **Session**：API 返回 401 时清除本地令牌并回到登录页；路由进入受保护页面前检查令牌过期时间。
 - **身份与看板**：平台管理员显示平台汇总、组织与账号管理；业务用户显示自己权限内的设备、水质、告警和组织信息。初始化仅创建平台管理员；新用户注册后未分配组织时显示待授权页。刷新或升级后通过服务端 session 恢复身份，角色缓存只用于界面状态。

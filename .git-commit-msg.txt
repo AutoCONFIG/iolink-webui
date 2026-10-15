@@ -1,0 +1,30 @@
+feat(ui): 浅白 Apple Liquid Glass 主题 + 胶囊按键，修复弹窗裁切与多余箭头
+
+主题
+- 深色海军蓝 → 浅白基调：背景 mesh 渐变 + 蓝/紫/品红/青氛围光斑
+- Element Plus 由官方暗色变量切回官方浅色变量，覆盖块选择器 html.dark → html:root
+- 全部文字/边框/阴影改浅色语义令牌（低透明冷色阴影）
+
+Liquid Glass
+- 统一玻璃表面改为白玻璃：高饱和透色 + 1.5px 镜面描边 + 顶部内高光
+- 浅色下关闭 SVG 位移折射（--lg-filter: none）：白玻璃的边界位移会在高对比边缘
+  产生明显红/黄色差描边；滤镜定义仍保留，切回深色可重新启用
+- 新增 LiquidGlass 组件的浅色适配（文字色继承、阴影改冷色浅阴影）
+
+按键
+- 全部实心按钮改为 Apple Liquid Glass 胶囊按键（999px）：
+  ::before 顶部光泽 + 左下青/右上粉折射色散，::after 多层 inset 发光镜面环
+- 中性白玻璃 / 品牌色玻璃 / 危险色玻璃三套底色；disabled 改为可读实体底色
+- 图标按钮、头像按钮、单选按钮组同步玻璃化；输入类控件圆角统一 10px
+
+修复
+- 弹窗只显示一半：.page-stack 的 transform 入场动画在结束后仍残留 identity 矩阵，
+  使该元素成为 position:fixed 后代的 containing block，而 el-dialog 遮罩挂在其下
+  未 teleport 到 body → 遮罩相对容器定位、弹窗被裁切。改为纯 opacity 动画，
+  并移除 .el-dialog 上不必要的 overflow:hidden
+- 移除顶栏「业务用户」后多余的向下箭头
+
+工程与文档
+- 新增离线单文件构建（VITE_OFFLINE：vite-plugin-singlefile + hash 路由），可双击 dist/index.html
+- 新增 LIQUID-GLASS-改造说明.md；DESIGN.md 更新浅色令牌、玻璃机制与按键规范
+- .gitignore 去重并补充 dev-run*.log / .workbuddy/
